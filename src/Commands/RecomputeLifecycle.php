@@ -59,7 +59,7 @@ class RecomputeLifecycle extends Command
             }
 
             $this->components->info(sprintf(
-                'Queued %s %s in %s %s.',
+                'Queued %s %s in %s %s, plus one to remove rows for entries that are gone.',
                 number_format($queued->entries),
                 $queued->entries === 1 ? 'entry' : 'entries',
                 number_format($queued->jobs),
@@ -71,21 +71,31 @@ class RecomputeLifecycle extends Command
         }
 
         $total = $recomputer->entries($site, $collection)->count();
+        $done = 0;
 
         if ($total === 0) {
             $this->components->warn('No published entries to recompute.');
+        } else {
+            $bar = $this->output->createProgressBar($total);
+            $bar->start();
 
-            return self::SUCCESS;
+            $done = $recomputer->run($site, $collection, fn (int $written) => $bar->advance($written));
+
+            $bar->finish();
+            $this->newLine(2);
+            $this->components->info(sprintf('Recomputed %s %s.', number_format($done), $done === 1 ? 'entry' : 'entries'));
         }
 
-        $bar = $this->output->createProgressBar($total);
-        $bar->start();
+        // Even with nothing live, there may be rows left from what used to be.
+        $pruned = $recomputer->prune($site, $collection);
 
-        $done = $recomputer->run($site, $collection, fn (int $written) => $bar->advance($written));
-
-        $bar->finish();
-        $this->newLine(2);
-        $this->components->info(sprintf('Recomputed %s %s.', number_format($done), $done === 1 ? 'entry' : 'entries'));
+        if ($pruned > 0) {
+            $this->components->info(sprintf(
+                'Removed %s %s for entries that are gone or no longer published.',
+                number_format($pruned),
+                $pruned === 1 ? 'row' : 'rows',
+            ));
+        }
 
         return self::SUCCESS;
     }

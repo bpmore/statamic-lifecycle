@@ -14,7 +14,7 @@
 - [x] Verify the distribution is genuinely spread, not clustered, on a large fixture site
 - [x] Owners seeded from last author, flagged `inferred`
 - [x] `lifecycle:recompute` as a queued batch
-- [ ] Orphaned-state cleanup for deleted entries
+- [x] Orphaned-state cleanup for deleted entries
 
 ## Phase 3 — Attestation (the paid value)
 - [ ] "Mark reviewed" action — records who, when, note, outcome
@@ -282,3 +282,25 @@
   it (Laravel's skeleton migrated); tests cover both the missing and the pre-existing case.
 - Verified on the host with the sync driver: "Queued 1 entry in 1 job", the batch record finished
   with 0 failed, the row's `computed_at` moved; `--sync` reports "Recomputed 1 entry".
+
+### 2026-09-11 — Orphaned-state cleanup
+- **The rule, now complete**: a `lifecycle_states` row exists for an entry exactly while it is
+  published. Baseline and recompute only ever write for published entries; this task removes
+  rows whose entry is gone *or no longer published*. `lifecycle_reviews` is never touched — a
+  page that is gone was still reviewed by somebody on a date, and that record outlives the page.
+- **Two mechanisms**, both needed: a listener on `EntryDeleted` removes the row the moment an
+  entry goes (wrapped so a missing table or unreachable database can never stop a deletion), and
+  `Jobs\PruneStates` runs last in every recompute batch (and after every `--sync` run, even when
+  nothing is live) to catch what the event never saw — `deleteQuietly()`, files removed from git,
+  and unpublishing, which fires no event of its own.
+- `PruneStates` enumerates the live set for itself when it runs, so it does not matter whether
+  workers reach it before or after the compute chunks; the worst case is one stale row until the
+  next night. `StateStore::ids()` walks the table keyset-paginated in chunks of 500 and
+  `remove()` deletes in chunks, so 40,000 rows never become 40,000 models or one giant `IN`.
+  Scope (`--site`, `--collection`) applies to the sweep too, by the row's own columns.
+- **Not done**: the doctor command spec §11 mentions for surfacing orphans. The recompute output
+  reports what it removed, which is the operational need; a `lifecycle:doctor` (install state,
+  config validity, orphans, never-baselined count) is a Phase 7 surface, noted there.
+- Verified on the host: a hand-inserted ghost row was swept by the queued run; a real entry's row
+  vanished on `delete()`; the file was gone and nothing else was.
+- **Phase 2 is complete.** Baseline and recompute are trustworthy on real data at 40,000 entries.

@@ -6,6 +6,7 @@ namespace Bpmore\StatamicLifecycle;
 
 use Illuminate\Console\Scheduling\Schedule;
 use Statamic\Events\EntryBlueprintFound;
+use Statamic\Events\EntryDeleted;
 use Statamic\Providers\AddonServiceProvider;
 
 class ServiceProvider extends AddonServiceProvider
@@ -13,6 +14,9 @@ class ServiceProvider extends AddonServiceProvider
     protected $listen = [
         EntryBlueprintFound::class => [
             Listeners\AddLifecycleFieldsToBlueprint::class,
+        ],
+        EntryDeleted::class => [
+            Listeners\RemoveStateOnEntryDeleted::class,
         ],
     ];
 

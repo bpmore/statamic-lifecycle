@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Bpmore\StatamicLifecycle\Blueprint\LifecycleFields;
+use Bpmore\StatamicLifecycle\Jobs\PruneStates;
 use Bpmore\StatamicLifecycle\Jobs\RecomputeStates;
 use Bpmore\StatamicLifecycle\Models\EntryState;
 use Bpmore\StatamicLifecycle\StateRecomputer;
@@ -11,6 +12,7 @@ use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Statamic\Facades\Collection;
 use Statamic\Facades\Entry;
@@ -187,14 +189,19 @@ describe('the command', function () {
         }
 
         $this->artisan('lifecycle:recompute')
-            ->expectsOutputToContain('Queued 5 entries in 3 jobs.')
+            ->expectsOutputToContain('Queued 5 entries in 3 jobs, plus one to remove rows for entries that are gone.')
             ->assertExitCode(0);
 
         Bus::assertBatched(function ($batch): bool {
+            $compute = $batch->jobs->filter(fn ($job): bool => $job instanceof RecomputeStates);
+            $prune = $batch->jobs->filter(fn ($job): bool => $job instanceof PruneStates);
+
             return $batch->name === 'Lifecycle recompute'
-                && $batch->jobs->count() === 3
-                && $batch->jobs->every(fn ($job): bool => $job instanceof RecomputeStates)
-                && $batch->jobs->sum(fn (RecomputeStates $job): int => count($job->entryIds)) === 5
+                && $batch->jobs->count() === 4
+                && $compute->count() === 3
+                && $compute->sum(fn (RecomputeStates $job): int => count($job->entryIds)) === 5
+                && $prune->count() === 1
+                && $batch->jobs->last() instanceof PruneStates
                 && $batch->options['allowFailures'] === true
                 && $batch->options['queue'] === 'lifecycle';
         });
@@ -209,12 +216,14 @@ describe('the command', function () {
 
         liveEntry('a', 'pages', '2026-01-01');
         liveEntry('b', 'pages', '2026-02-01');
+        // And a row for something that is not there any more.
+        EntryState::query()->insert(['entry_id' => 'ghost', 'site' => 'default', 'collection' => 'pages', 'status' => 'overdue', 'baselined' => false, 'computed_at' => '2026-01-01 00:00:00']);
 
         $this->artisan('lifecycle:recompute')
-            ->expectsOutputToContain('Queued 2 entries in 1 job.')
+            ->expectsOutputToContain('Queued 2 entries in 1 job, plus one to remove rows for entries that are gone.')
             ->assertExitCode(0);
 
-        expect(EntryState::query()->count())->toBe(2);
+        expect(EntryState::query()->pluck('entry_id')->sort()->values()->all())->toBe(['a', 'b']);
     });
 
     it('says so when there is nothing in scope', function () {
@@ -243,5 +252,119 @@ describe('the command', function () {
             // Installed here (the tables exist on the test connection), so
             // the filter lets it run.
             ->and($events->first()->filtersPass(app()))->toBeTrue();
+    });
+});
+
+describe('orphans', function () {
+    it('finds rows whose entry is gone, and rows whose entry is no longer published', function () {
+        liveEntry('live', 'pages', '2026-01-01');
+        liveEntry('was-live', 'pages', '2026-01-01');
+        liveEntry('deleted', 'pages', '2026-01-01');
+        app(StateRecomputer::class)->recompute(['live', 'was-live', 'deleted'], new DateTimeImmutable('2026-09-11'));
+
+        Entry::find('was-live')->published(false)->save();
+        Entry::find('deleted')->deleteQuietly();   // no event: the sweep's case
+
+        expect(app(StateRecomputer::class)->orphans())->toEqualCanonicalizing(['deleted', 'was-live']);
+    });
+
+    it('stays within the scope it was given', function () {
+        liveEntry('p', 'pages', '2026-01-01');
+        liveEntry('n', 'news', '2026-01-01');
+        app(StateRecomputer::class)->recompute(['p', 'n'], new DateTimeImmutable('2026-09-11'));
+        Entry::find('p')->deleteQuietly();
+        Entry::find('n')->deleteQuietly();
+
+        // Asked about news only, it must not touch the pages row.
+        expect(app(StateRecomputer::class)->orphans(collection: 'news'))->toBe(['n'])
+            ->and(app(StateRecomputer::class)->prune(collection: 'news'))->toBe(1)
+            ->and(EntryState::query()->pluck('entry_id')->all())->toBe(['p']);
+    });
+
+    it('removes them and leaves the live rows alone', function () {
+        liveEntry('live', 'pages', '2026-01-01');
+        liveEntry('gone', 'pages', '2026-01-01');
+        app(StateRecomputer::class)->recompute(['live', 'gone'], new DateTimeImmutable('2026-09-11'));
+        Entry::find('gone')->deleteQuietly();
+
+        expect(app(StateRecomputer::class)->prune())->toBe(1)
+            ->and(EntryState::query()->pluck('entry_id')->all())->toBe(['live']);
+    });
+
+    it('walks a large table in chunks without loading it', function () {
+        // 1,200 ghost rows, no entries at all: every one is an orphan, and
+        // the walk and the delete each take a handful of statements.
+        $rows = [];
+        for ($i = 0; $i < 1_200; $i++) {
+            $rows[] = ['entry_id' => "ghost-{$i}", 'site' => 'default', 'collection' => 'pages', 'status' => 'overdue', 'baselined' => false, 'computed_at' => '2026-01-01 00:00:00'];
+        }
+        foreach (array_chunk($rows, 500) as $chunk) {
+            EntryState::query()->insert($chunk);
+        }
+
+        DB::connection()->enableQueryLog();
+
+        expect(app(StateRecomputer::class)->prune())->toBe(1_200)
+            ->and(EntryState::query()->count())->toBe(0)
+            ->and(count(DB::connection()->getQueryLog()))->toBeLessThanOrEqual(8);
+    });
+
+    it('is a job of its own, last in the batch', function () {
+        liveEntry('gone', 'pages', '2026-01-01');
+        app(StateRecomputer::class)->recompute(['gone'], new DateTimeImmutable('2026-09-11'));
+        Entry::find('gone')->deleteQuietly();
+
+        (new PruneStates)->handle(app(StateRecomputer::class));
+
+        expect(EntryState::query()->count())->toBe(0);
+    });
+
+    it('is reported by a sync run', function () {
+        liveEntry('live', 'pages', '2026-01-01');
+        liveEntry('gone', 'pages', '2026-01-01');
+        app(StateRecomputer::class)->recompute(['live', 'gone'], new DateTimeImmutable('2026-09-11'));
+        Entry::find('gone')->deleteQuietly();
+
+        $this->artisan('lifecycle:recompute', ['--sync' => true])
+            ->expectsOutputToContain('Recomputed 1 entry.')
+            ->expectsOutputToContain('Removed 1 row for entries that are gone or no longer published.')
+            ->assertExitCode(0);
+    });
+
+    it('is swept even when nothing is live any more', function () {
+        EntryState::query()->insert(['entry_id' => 'ghost', 'site' => 'default', 'collection' => 'pages', 'status' => 'overdue', 'baselined' => false, 'computed_at' => '2026-01-01 00:00:00']);
+
+        $this->artisan('lifecycle:recompute', ['--sync' => true])
+            ->expectsOutputToContain('No published entries to recompute.')
+            ->expectsOutputToContain('Removed 1 row for entries that are gone or no longer published.')
+            ->assertExitCode(0);
+
+        expect(EntryState::query()->count())->toBe(0);
+    });
+});
+
+describe('on deletion', function () {
+    it('removes the row the moment the entry is deleted', function () {
+        liveEntry('doomed', 'pages', '2026-01-01');
+        liveEntry('other', 'pages', '2026-01-01');
+        app(StateRecomputer::class)->recompute(['doomed', 'other'], new DateTimeImmutable('2026-09-11'));
+
+        Entry::find('doomed')->delete();
+
+        expect(EntryState::query()->pluck('entry_id')->all())->toBe(['other']);
+    });
+
+    it('never gets in the way of deleting an entry', function () {
+        // The tables are not there — the site has not installed yet — and
+        // the entry still goes.
+        config([
+            'lifecycle.connection' => 'lifecycle_absent',
+            'database.connections.lifecycle_absent' => ['driver' => 'sqlite', 'database' => sys_get_temp_dir().'/absent-'.uniqid().'.sqlite', 'prefix' => ''],
+        ]);
+        liveEntry('doomed', 'pages', '2026-01-01');
+
+        Entry::find('doomed')->delete();
+
+        expect(Entry::find('doomed'))->toBeNull();
     });
 });

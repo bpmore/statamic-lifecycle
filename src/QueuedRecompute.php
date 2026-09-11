@@ -13,6 +13,7 @@ use Illuminate\Bus\Batch;
  */
 final readonly class QueuedRecompute
 {
+    /** @param  int  $jobs  recompute jobs; the batch also carries one prune job */
     public function __construct(
         public Batch $batch,
         public int $entries,

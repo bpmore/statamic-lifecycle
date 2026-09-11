@@ -67,6 +67,63 @@ final class StateStore
         return $found;
     }
 
+    /**
+     * The entry ID of every row in scope, a chunk at a time, so 40,000 IDs
+     * can be walked without 40,000 model instances.
+     *
+     * @return iterable<list<string>>
+     */
+    public function ids(?string $site = null, ?string $collection = null): iterable
+    {
+        $query = EntryState::query()->orderBy('entry_id');
+
+        if ($site !== null) {
+            $query->where('site', $site);
+        }
+        if ($collection !== null) {
+            $query->where('collection', $collection);
+        }
+
+        $last = null;
+
+        while (true) {
+            $chunk = (clone $query)
+                ->when($last !== null, fn ($q) => $q->where('entry_id', '>', $last))
+                ->limit(self::CHUNK)
+                ->pluck('entry_id')
+                ->map(fn ($id): string => (string) $id)
+                ->all();
+
+            if ($chunk === []) {
+                return;
+            }
+
+            yield $chunk;
+
+            $last = end($chunk);
+        }
+    }
+
+    /**
+     * Delete rows, in chunks. The review history in lifecycle_reviews is not
+     * touched: a page that is gone was still reviewed by somebody on a date,
+     * and that record outlives the page.
+     *
+     * @param  iterable<string>  $entryIds
+     * @return int rows removed
+     */
+    public function remove(iterable $entryIds): int
+    {
+        $removed = 0;
+        $ids = is_array($entryIds) ? $entryIds : iterator_to_array($entryIds, false);
+
+        foreach (array_chunk(array_values(array_unique($ids)), self::CHUNK) as $chunk) {
+            $removed += EntryState::query()->whereIn('entry_id', $chunk)->delete();
+        }
+
+        return $removed;
+    }
+
     public function put(LifecycleState $state, ?DateTimeImmutable $baselineReviewAt = null): void
     {
         $this->putMany([[$state, $baselineReviewAt]]);

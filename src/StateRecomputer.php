@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Bpmore\StatamicLifecycle;
 
 use Bpmore\StatamicLifecycle\Entries\EntryFactsReader;
+use Bpmore\StatamicLifecycle\Jobs\PruneStates;
 use Bpmore\StatamicLifecycle\Jobs\RecomputeStates;
 use Bpmore\StatamicLifecycle\State\StateComputer;
 use Bpmore\StatamicLifecycle\Storage\StateStore;
@@ -21,9 +22,11 @@ use Statamic\Facades\Entry;
  * and with edits (a new owner, a new interval, a new deadline), and nothing
  * else rewrites the row.
  *
- * Only published entries are computed. What is not published does not go
- * stale on the live site; what is no longer there is the cleanup pass's
- * business, not this one's.
+ * Only published entries are computed. A row exists for an entry exactly
+ * while it is published: what is not published does not go stale on the
+ * live site, and what is gone has nothing to be stale. The prune pass, last
+ * in every run, removes the rows that no longer have a live entry behind
+ * them. The review history is never touched by any of this.
  */
 final class StateRecomputer
 {
@@ -74,6 +77,11 @@ final class StateRecomputer
             })
             ->all();
 
+        // Last, the sweep for rows whose entry is gone or no longer live. It
+        // enumerates for itself when it runs, so it does not matter whether
+        // the workers got to it before or after the chunks.
+        $jobs[] = new PruneStates($site, $collection);
+
         $batch = Bus::batch($jobs)
             ->name('Lifecycle recompute')
             ->allowFailures();
@@ -82,7 +90,36 @@ final class StateRecomputer
             $batch->onQueue($this->queue);
         }
 
-        return new QueuedRecompute($batch->dispatch(), $entries, count($jobs));
+        return new QueuedRecompute($batch->dispatch(), $entries, count($jobs) - 1);
+    }
+
+    /**
+     * Rows in scope with no published entry behind them: the entry was
+     * deleted (by hand, by git, by anything that skipped the event), or it
+     * was unpublished and is no longer governed.
+     *
+     * @return list<string>
+     */
+    public function orphans(?string $site = null, ?string $collection = null): array
+    {
+        $live = array_fill_keys($this->entries($site, $collection)->all(), true);
+        $orphans = [];
+
+        foreach ($this->store->ids($site, $collection) as $chunk) {
+            foreach ($chunk as $id) {
+                if (! isset($live[$id])) {
+                    $orphans[] = $id;
+                }
+            }
+        }
+
+        return $orphans;
+    }
+
+    /** @return int rows removed */
+    public function prune(?string $site = null, ?string $collection = null): int
+    {
+        return $this->store->remove($this->orphans($site, $collection));
     }
 
     /**
