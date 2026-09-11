@@ -43,4 +43,20 @@ class ServiceProvider extends AddonServiceProvider
             __DIR__.'/../database/migrations' => database_path('migrations'),
         ], 'lifecycle-migrations');
     }
+
+    public function register(): void
+    {
+        parent::register();
+
+        // The site's rules, read once from config. Everything that computes
+        // state gets the same policy, so two screens cannot disagree about
+        // what "due soon" means.
+        $this->app->singleton(State\Policy::class, fn ($app): State\Policy => State\Policy::fromConfig(
+            (array) $app['config']->get('lifecycle', []),
+        ));
+
+        $this->app->singleton(State\StateComputer::class, fn ($app): State\StateComputer => new State\StateComputer(
+            $app->make(State\Policy::class),
+        ));
+    }
 }

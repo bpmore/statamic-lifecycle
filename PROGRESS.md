@@ -7,7 +7,7 @@
 - [x] Scaffold the addon package, tests, CI
 - [x] Migrations: `lifecycle_states`, `lifecycle_reviews`, `lifecycle_notifications`, `lifecycle_actions` (index `next_review_at`)
 - [x] Blueprint fields: `content_owner`, `review_interval`, optional `review_by`
-- [ ] State computation service: resolve effective interval (entry → blueprint → collection → global) and owner (assigned → inferred → fallback); pure and unit-tested
+- [x] State computation service: resolve effective interval (entry → blueprint → collection → global) and owner (assigned → inferred → fallback); pure and unit-tested
 
 ## Phase 2 — Baseline and recompute
 - [ ] `lifecycle:baseline --horizon=12 --dry-run` with the staggering algorithm
@@ -140,3 +140,40 @@
   settings screen in the CP. Worth using for the Phase 5–7 configuration instead of config-only.
 - Verified on the host site: a real `pages` entry's blueprint has the three fields in the sidebar
   after `slug`, with the six interval options reaching the fieldtype's preload.
+
+### 2026-09-11 — State computation service
+- **Split into a pure core and a thin adapter.** `State\StateComputer::compute(EntryFacts, PriorState,
+  now)` → `LifecycleState`; nothing in `State\` imports a framework (enforced by a token-based test,
+  not a Pest arch rule — `toUse('Illuminate')` matches nothing against the registered PSR-4
+  prefixes and passes vacuously, and it cost 2.5s). 39 unit cases run in 90ms with no Statamic.
+  `Entries\EntryFactsReader` is where Statamic is met: `value()` not `get()` so a localisation
+  inherits its origin's owner until it sets its own; `lastModifiedBy()` so a last author who has
+  left is not inferred; a date field holding a non-date reads as no deadline.
+- **Decisions the spec left open, now made in code (each unit-tested):**
+  - *Hard deadline* (`review_by`) wins over any computed date, later or earlier, until a review
+    is recorded on or after it; then it is spent and the cadence resumes.
+  - *Never reviewed, never baselined* → last modification + interval. On an un-baselined site
+    that makes old content overdue at once, which is honest and is exactly what `lifecycle:baseline`
+    exists to spread out. Baselined entries keep their baseline date until the first real review,
+    even if the interval changes — the spread must not collapse.
+  - *Status is day-granular.* Due today is `due_soon`, not overdue; overdue starts the next day;
+    `expired` = overdue for ≥ `expired_after_days` (default 30). Phase 6 may refine what
+    "expired" gates, but a computed status has to be a function of time, and this is it.
+  - *Inferred owners live only in the table.* The spec's "seed `content_owner` from the last
+    author" is read as: resolve it on every compute, never write it to the entry. Writing it would
+    make a guess indistinguishable from a human's word — and would touch 40,000 files. So Phase 2's
+    "owners seeded from last author" is persistence of what the computer already resolves.
+  - *Exempt* is an input fact (`EntryFacts::$exempt`); where it is recorded (field or table) is
+    still undecided and belongs to whichever task builds the exempt action.
+- `State\Policy` is the site's rules, built once from config and bound as a singleton so two screens
+  cannot disagree about "due soon". Interval values everywhere may be a name or a number of days;
+  a default that does not resolve throws at boot rather than leaving every entry without an
+  interval. Blueprint intervals resolve `collection/blueprint` before bare `blueprint`.
+- Config keys added: `intervals.{default,collections,blueprints,named}`,
+  `owners.{infer_from_last_author,fallback}`, `due_soon_days`, `expired_after_days`. The
+  owner-of-last-resort is therefore configurable now; Phase 4's task is the surface for it.
+- Result carries *why* as well as *what* (`ownerSource`, `intervalSource`, `nextReviewSource`) so the
+  Phase 3 panel can say "1 March 2027, from the deadline you set". `ownerType` is always `user` in
+  v1; the column is there for groups.
+- Verified on the host: a real entry computes through the container — global yearly, next review a
+  year after last modification, fresh.

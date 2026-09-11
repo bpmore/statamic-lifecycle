@@ -22,4 +22,82 @@ return [
 
     'connection' => env('LIFECYCLE_CONNECTION'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Review intervals
+    |--------------------------------------------------------------------------
+    |
+    | How often a page needs a person to confirm it is still accurate, when
+    | the entry itself does not say. Resolved most specific first:
+    |
+    |   the entry's review_interval field
+    |   → 'blueprints' (keyed 'collection/blueprint', or just 'blueprint')
+    |   → 'collections'
+    |   → 'default'
+    |
+    | Every value may be an interval name — monthly, quarterly, every_6_months,
+    | yearly, every_2_years, every_3_years — or a number of days. Names a
+    | site adds under 'named' work everywhere a built-in name does.
+    |
+    */
+
+    'intervals' => [
+
+        'default' => 'yearly',
+
+        'collections' => [
+            // 'news' => 'quarterly',
+        ],
+
+        'blueprints' => [
+            // 'policy' => 'every_2_years',
+            // 'news/press_release' => 'monthly',
+        ],
+
+        'named' => [
+            // 'fortnightly' => 14,
+        ],
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Owners
+    |--------------------------------------------------------------------------
+    |
+    | When an entry has no content_owner, the person who last modified it is
+    | treated as the owner and flagged as inferred — a guess the dashboard
+    | shows as a guess, never written to the entry. Turn that off to have
+    | unowned pages fall straight through to the owner-of-last-resort.
+    |
+    | 'fallback' names the owner-of-last-resort per site, by user ID, so that
+    | nothing is ever ownerless.
+    |
+    */
+
+    'owners' => [
+
+        'infer_from_last_author' => true,
+
+        'fallback' => [
+            // 'default' => 'a-user-id',
+        ],
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Thresholds
+    |--------------------------------------------------------------------------
+    |
+    | A page is "due soon" this many days before its review date, and
+    | "expired" once it has been overdue this long. Expired is the state in
+    | which expiry actions, where a collection has opted into them, apply.
+    |
+    */
+
+    'due_soon_days' => 30,
+
+    'expired_after_days' => 30,
+
 ];
