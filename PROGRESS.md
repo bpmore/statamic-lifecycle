@@ -11,7 +11,7 @@
 
 ## Phase 2 — Baseline and recompute
 - [x] `lifecycle:baseline --horizon=12 --dry-run` with the staggering algorithm
-- [ ] Verify the distribution is genuinely spread, not clustered, on a large fixture site
+- [x] Verify the distribution is genuinely spread, not clustered, on a large fixture site
 - [ ] Owners seeded from last author, flagged `inferred`
 - [ ] `lifecycle:recompute` as a queued batch
 - [ ] Orphaned-state cleanup for deleted entries
@@ -207,3 +207,31 @@
 - Memory: all facts for the run are held in memory (an `EntryFacts` is a few hundred bytes; 40,000
   is a few tens of MB). Entries stream through `lazy(500)`. Fine for the target; the large-fixture
   task will say for sure.
+
+### 2026-09-11 — Verified the spread at 40,000
+- **Fixture site**: `tools/build-fixture-site.php --site=… --count=40000` writes a deliberately lumpy
+  population straight to disk in ~2s (`Tests\Support\FixtureSite`, seeded): 25% re-saved in one
+  migration week, 45% long tail back to 2016, 20% recent, 10% an exact-tie "audit afternoon";
+  80/15/5 across pages (global yearly) / news (`quarterly`) / policies (`every_2_years`); 2% with
+  `review_by` (some past); 5% drafts; 60% with a last author. `tools/verify-spread.php` joins the
+  manifest to `lifecycle_states` and runs `Tests\Support\SpreadAnalysis`; `tools/remove-fixture-site.php`
+  takes it all out again. All three are in the repo; the host is back to its one real entry.
+- **Result, 37,982 published entries, horizon 12 months** (`RESULT: spread, not clustered.`):
+  - window 90 (news, 5,626): 90 of 90 days used, 62–63 per day, busiest day 1.008× average
+  - window 365 (pages + policies, 31,598): 365 of 365 days used, 86–87 per day, busiest 1.005×
+  - overdue on day one 0 · past the horizon 0 · scheduled before older content 0 (both windows)
+  - every published entry has a row; no draft has one; all 758 hard-dated kept their date
+  - 22,775 owners inferred from the last author (pool of one user on the host)
+- **Cost**: dry run 14.7s, apply 15.5s, peak RSS 305 MB — almost all of it Statamic's Stache holding
+  40,000 entries (`stache:warm` alone took 7.5 min and needs the same memory). The addon's own
+  footprint is the facts array, a few tens of MB. No optimisation needed at the target scale.
+- **What the combined histogram looks like, and why that is right**: the first three months carry
+  ~148/day and the rest ~86/day, because the quarterly group is bounded to 90 days and stacks on
+  the yearly spread. That is a plateau, not a pile — each window is even to within one entry per
+  day — and it is what "a quarterly page's first review cannot be eleven months out" costs. The dry
+  run's per-collection "spread across 90 days" line is where a reader sees it.
+- **Durable**: `tests/Feature/BaselineSpreadTest.php` runs the same population at 4,000 through the
+  real command (files written straight into the test Stache, `Stache::clear()`, 2.6s) and asserts
+  every check above with a tighter bound (max − min per day ≤ 1). Group `scale`, so a fast loop can
+  `--exclude-group=scale`; CI runs it. PHPUnit reserves `large` as a group name.
+- Nit fixed on the way: PHP 8.4 wants `fputcsv`/`fgetcsv` given `escape: ''` explicitly.
