@@ -24,7 +24,7 @@
 
 ## Phase 4 — Bulk assignment (adoption depends on this)
 - [x] Assign by structure branch
-- [ ] Assign by collection / blueprint / author / taxonomy term
+- [x] Assign by collection / blueprint / author / taxonomy term
 - [ ] CSV import (URL or entry ID → owner)
 - [ ] Bulk action in the CP listing
 - [ ] Owner-of-last-resort per site
@@ -423,3 +423,25 @@
   kept), and sites tracking last update have `updated_at`. Noted; not worth fighting the file system.
 - Verified on the host: `--branch=/` on the structured `pages` collection assigned the home page,
   the file carries `content_owner`, the row says `assigned`.
+
+### 2026-09-11 — Assign by collection, blueprint, author, term
+- Four more `Selectors\` on the same `Selection` shape, wired into `lifecycle:assign`:
+  `--collection=`, `--blueprint=` (within `--collection` when given, else wherever a blueprint by
+  that handle exists), `--author=` (ID or email), `--term=taxonomy::slug`. **More than one narrows**
+  (intersection by entry ID), and the description joins with "and": "every entry in news and every
+  entry written or last edited by Sam Okafor". `--site=` narrows any of them.
+- **Decisions**: selectors include drafts — an owner is content whatever the status, and
+  "everything in news" means everything (recompute still writes rows only for published).
+  `--author` matches *both* the `author` field (which may hold a list, hence a scan) and
+  `updated_by`: "Sam has left" means what Sam wrote and what Sam kept up, and either alone misses
+  half. `--blueprint` matches the blueprint an entry actually uses — Statamic's `where('blueprint')`
+  resolves the collection default for entries that do not name one — and validates against
+  `Collection::entryBlueprints()`, so an entry whose file names a blueprint that does not exist
+  (the host's starter-kit home page says `blueprint: pages`; Statamic resolves it to `page`) is
+  matched by what Statamic resolves, not by what the file says.
+- A term is a relationship only in a collection attached to its taxonomy; `whereTaxonomy` says
+  so, and the test fixture had to learn it.
+- Test fixtures needing a second real blueprint use `Blueprint::setDirectory()` pointed into the
+  throwaway fixture directory; a partial mock of the repository breaks the fallback blueprint for
+  every other collection.
+- Verified on the host with dry runs of each selector and each error message.

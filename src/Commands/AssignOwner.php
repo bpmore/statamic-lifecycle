@@ -7,6 +7,10 @@ namespace Bpmore\StatamicLifecycle\Commands;
 use Bpmore\StatamicLifecycle\Assignment\OwnerAssigner;
 use Bpmore\StatamicLifecycle\Assignment\Selection;
 use Bpmore\StatamicLifecycle\Assignment\Selectors\Branch;
+use Bpmore\StatamicLifecycle\Assignment\Selectors\ByAuthor;
+use Bpmore\StatamicLifecycle\Assignment\Selectors\InCollection;
+use Bpmore\StatamicLifecycle\Assignment\Selectors\WithBlueprint;
+use Bpmore\StatamicLifecycle\Assignment\Selectors\WithTerm;
 use Illuminate\Console\Command;
 use InvalidArgumentException;
 use Statamic\Console\RunsInPlease;
@@ -30,13 +34,17 @@ class AssignOwner extends Command
     protected $signature = 'lifecycle:assign
         {--owner= : The owner to assign, by user ID or email}
         {--branch= : Every page at and under this URI in a structured collection}
-        {--site= : The site whose tree the branch is read from (default: the default site)}
+        {--collection= : Every entry in this collection}
+        {--blueprint= : Every entry using this blueprint (within --collection, if given)}
+        {--author= : Every entry written or last edited by this user, by ID or email}
+        {--term= : Every entry tagged with this term, as taxonomy::slug}
+        {--site= : Only this site (a branch is read from this site\'s tree; default: the default site)}
         {--dry-run : Show what would change and change nothing}
         {--force : Do not ask before writing}';
 
     protected $description = 'Assign a content owner to many entries at once';
 
-    public function handle(Branch $branch, OwnerAssigner $assigner): int
+    public function handle(OwnerAssigner $assigner): int
     {
         $owner = $this->owner();
 
@@ -53,7 +61,7 @@ class AssignOwner extends Command
         }
 
         try {
-            $selection = $this->selection($branch, $site);
+            $selection = $this->selection($site);
         } catch (InvalidArgumentException $e) {
             $this->components->error($e->getMessage());
 
@@ -61,7 +69,7 @@ class AssignOwner extends Command
         }
 
         if ($selection === null) {
-            $this->components->error('Say which entries: --branch=/some/page.');
+            $this->components->error('Say which entries: --branch=/some/page, --collection=, --blueprint=, --author=, or --term=taxonomy::slug. Give more than one to narrow it down.');
 
             return self::FAILURE;
         }
@@ -137,13 +145,49 @@ class AssignOwner extends Command
         return $user;
     }
 
-    /** The one selector so far; the rest of Phase 4 adds the others here. */
-    private function selection(Branch $branch, ?string $site): ?Selection
+    /**
+     * Which entries. More than one selector narrows: --collection=news
+     * --author=sam is Sam's entries in news.
+     */
+    private function selection(?string $site): ?Selection
     {
+        $selections = [];
+
         if ($uri = $this->option('branch')) {
-            return $branch->select((string) $uri, $site);
+            $selections[] = (new Branch)->select((string) $uri, $site);
         }
 
-        return null;
+        if (($blueprint = $this->option('blueprint')) !== null && $blueprint !== '') {
+            // Blueprint takes the collection with it, so the description reads
+            // "every article entry in news" rather than two clauses.
+            $selections[] = (new WithBlueprint)->select((string) $blueprint, $this->option('collection') ?: null, $site);
+        } elseif (($collection = $this->option('collection')) !== null && $collection !== '') {
+            $selections[] = (new InCollection)->select((string) $collection, $site);
+        }
+
+        if (($author = $this->option('author')) !== null && $author !== '') {
+            $selections[] = (new ByAuthor)->select((string) $author, $site);
+        }
+
+        if (($term = $this->option('term')) !== null && $term !== '') {
+            $selections[] = (new WithTerm)->select((string) $term, $site);
+        }
+
+        if ($selections === []) {
+            return null;
+        }
+
+        $selection = array_shift($selections);
+
+        foreach ($selections as $other) {
+            $ids = $other->entries->map(fn ($entry): string => (string) $entry->id())->flip();
+
+            $selection = new Selection(
+                $selection->description.' '.__('and').' '.$other->description,
+                $selection->entries->filter(fn ($entry): bool => $ids->has((string) $entry->id()))->values(),
+            );
+        }
+
+        return $selection;
     }
 }

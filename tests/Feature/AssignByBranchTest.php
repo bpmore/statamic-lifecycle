@@ -163,7 +163,7 @@ describe('the command', function () {
             ->assertExitCode(1);
 
         $this->artisan('lifecycle:assign', ['--owner' => 'cardio-lead'])
-            ->expectsOutputToContain('Say which entries: --branch=/some/page.')
+            ->expectsOutputToContain('Say which entries: --branch=/some/page, --collection=, --blueprint=, --author=, or --term=taxonomy::slug.')
             ->assertExitCode(1);
 
         $this->artisan('lifecycle:assign', ['--owner' => 'cardio-lead', '--branch' => '/nowhere'])
