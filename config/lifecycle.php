@@ -70,6 +70,12 @@ return [
     | shows as a guess, never written to the entry. Turn that off to have
     | unowned pages fall straight through to the owner-of-last-resort.
     |
+    | 'never_infer' lists people who must not be guessed: the account that ran
+    | the import, the administrator who re-saved every page during a migration.
+    | Without it, one person "owns" the whole site, and the dashboard is a
+    | guess dressed up as a fact. `lifecycle:baseline` warns when one person
+    | would be inferred for most of the site.
+    |
     | 'fallback' names the owner-of-last-resort per site, by user ID, so that
     | nothing is ever ownerless.
     |
@@ -78,6 +84,10 @@ return [
     'owners' => [
 
         'infer_from_last_author' => true,
+
+        'never_infer' => [
+            // 'the-import-account-id',
+        ],
 
         'fallback' => [
             // 'default' => 'a-user-id',

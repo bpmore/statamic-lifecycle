@@ -93,3 +93,17 @@ it('refuses negative thresholds', function () {
     expect(fn () => new Policy(dueSoonDays: -1))->toThrow(InvalidArgumentException::class);
     expect(fn () => new Policy(expiredAfterDays: -1))->toThrow(InvalidArgumentException::class);
 });
+
+it('reads the people who must never be guessed, dropping blanks', function () {
+    $policy = Policy::fromConfig(['owners' => ['never_infer' => ['importer', '', null, 'migration-bot']]]);
+
+    expect($policy->neverInfer)->toBe(['importer', 'migration-bot'])
+        ->and($policy->mayInfer('importer'))->toBeFalse()
+        ->and($policy->mayInfer('alice'))->toBeTrue()
+        ->and($policy->mayInfer(null))->toBeFalse()
+        ->and($policy->mayInfer(''))->toBeFalse();
+});
+
+it('may infer nobody at all when inference is off', function () {
+    expect((new Policy(inferOwnerFromLastAuthor: false))->mayInfer('alice'))->toBeFalse();
+});

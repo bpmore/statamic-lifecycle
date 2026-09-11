@@ -32,6 +32,8 @@ final readonly class Policy
     /**
      * @param  array<string, int>  $namedIntervals  additional names, on top of LifecycleFields::INTERVALS
      * @param  array<string, string>  $fallbackOwners  site handle => user ID, the owner-of-last-resort
+     * @param  list<string>  $neverInfer  user IDs never to guess as owners: the import account, the
+     *                                    admin who re-saved everything during a migration
      */
     public function __construct(
         mixed $defaultInterval = 'yearly',
@@ -40,6 +42,7 @@ final readonly class Policy
         array $namedIntervals = [],
         public bool $inferOwnerFromLastAuthor = true,
         public array $fallbackOwners = [],
+        public array $neverInfer = [],
         public int $dueSoonDays = 30,
         public int $expiredAfterDays = 30,
     ) {
@@ -79,9 +82,19 @@ final readonly class Policy
             namedIntervals: (array) ($intervals['named'] ?? []),
             inferOwnerFromLastAuthor: (bool) ($owners['infer_from_last_author'] ?? true),
             fallbackOwners: array_filter((array) ($owners['fallback'] ?? []), fn ($id): bool => is_string($id) && $id !== ''),
+            neverInfer: array_values(array_filter((array) ($owners['never_infer'] ?? []), fn ($id): bool => is_string($id) && $id !== '')),
             dueSoonDays: (int) ($config['due_soon_days'] ?? 30),
             expiredAfterDays: (int) ($config['expired_after_days'] ?? 30),
         );
+    }
+
+    /** Whether this person may be guessed as an owner at all. */
+    public function mayInfer(?string $userId): bool
+    {
+        return $this->inferOwnerFromLastAuthor
+            && $userId !== null
+            && $userId !== ''
+            && ! in_array($userId, $this->neverInfer, true);
     }
 
     /**

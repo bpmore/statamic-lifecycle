@@ -290,3 +290,31 @@ it('carries the identifying columns and the clock through', function () {
         ->and($state->collection)->toBe('news')
         ->and($state->computedAt)->toEqual(at('2026-06-01 10:30'));
 });
+
+describe('owner: guesses the site has ruled out', function () {
+    it('never infers a person on the never-infer list, and falls through', function () {
+        // Whoever ran the import "last touched" every page on the site.
+        $policy = new Policy(neverInfer: ['importer'], fallbackOwners: ['default' => 'webmaster']);
+
+        $state = compute(facts(['lastAuthorId' => 'importer']), policy: $policy);
+
+        expect($state->ownerId)->toBe('webmaster')
+            ->and($state->ownerSource)->toBe(OwnerSource::Fallback);
+    });
+
+    it('still takes that person as an owner when a human chose them', function () {
+        // The list rules out a guess, not a decision.
+        $policy = new Policy(neverInfer: ['importer']);
+
+        $state = compute(facts(['ownerId' => 'importer', 'lastAuthorId' => 'importer']), policy: $policy);
+
+        expect($state->ownerId)->toBe('importer')
+            ->and($state->ownerSource)->toBe(OwnerSource::Assigned);
+    });
+
+    it('still infers everyone else', function () {
+        $policy = new Policy(neverInfer: ['importer']);
+
+        expect(compute(facts(['lastAuthorId' => 'alice']), policy: $policy)->ownerSource)->toBe(OwnerSource::Inferred);
+    });
+});

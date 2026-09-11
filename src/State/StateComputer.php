@@ -48,7 +48,9 @@ final readonly class StateComputer
             return [$facts->ownerId, OwnerSource::Assigned];
         }
 
-        if ($this->policy->inferOwnerFromLastAuthor && $facts->lastAuthorId !== null && $facts->lastAuthorId !== '') {
+        // The last author is a guess, and some guesses are known to be wrong:
+        // whoever ran the import "last touched" every page on the site.
+        if ($this->policy->mayInfer($facts->lastAuthorId)) {
             return [$facts->lastAuthorId, OwnerSource::Inferred];
         }
 

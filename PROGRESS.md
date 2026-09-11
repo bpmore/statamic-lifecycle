@@ -12,7 +12,7 @@
 ## Phase 2 — Baseline and recompute
 - [x] `lifecycle:baseline --horizon=12 --dry-run` with the staggering algorithm
 - [x] Verify the distribution is genuinely spread, not clustered, on a large fixture site
-- [ ] Owners seeded from last author, flagged `inferred`
+- [x] Owners seeded from last author, flagged `inferred`
 - [ ] `lifecycle:recompute` as a queued batch
 - [ ] Orphaned-state cleanup for deleted entries
 
@@ -235,3 +235,25 @@
   every check above with a tighter bound (max − min per day ≤ 1). Group `scale`, so a fast loop can
   `--exclude-group=scale`; CI runs it. PHPUnit reserves `large` as a group name.
 - Nit fixed on the way: PHP 8.4 wants `fputcsv`/`fgetcsv` given `escape: ''` explicitly.
+
+### 2026-09-11 — Owners seeded from last author
+- The seeding itself was already in place from the computation and baseline tasks (resolved on
+  every compute, written to `lifecycle_states` as `owner_source = inferred`, never to the entry;
+  a last author who has left is not inferred). This task made it trustworthy and visible.
+- **`owners.never_infer`** (config, `Policy::$neverInfer`, `Policy::mayInfer()`): user IDs never
+  guessed as owners. The 40,000 run showed why — with one user in the pool, 22,775 pages were
+  "owned" by that person. On a real site that is the import account or the admin who re-saved
+  everything in a migration week, and a dashboard built on that guess is worse than one that says
+  "nobody". The list rules out a *guess*, not a decision: a human assigning that account still
+  counts as assigned (tested).
+- **The baseline now reports owners** before writing: chosen by a person / inferred (a guess,
+  kept out of the entry) / owner of last resort / nobody — from the very states it is about to
+  write, so dry run and real run agree. Two warnings: if anything has nobody and no
+  `owners.fallback` is named; and if one person would be inferred for ≥ 50% of the site (only
+  when there are 20+ entries — three pages by one author is a small site, not a migration).
+- Laravel test quirk, worth remembering: `expectsOutputToContain` satisfies only the *first*
+  matching expectation for each line written, so two expectations against one output line can
+  never both pass. One contiguous phrase per line.
+- Left for later, deliberately: an `author` blueprint field as a second inference source. The
+  spec says last author; on an imported site `author` is as likely to be the import account as
+  `updated_by` is, and `never_infer` covers both. Revisit if a real site asks.

@@ -8,6 +8,9 @@ use Bpmore\StatamicLifecycle\Entries\EntryFactsReader;
 use Bpmore\StatamicLifecycle\State\BaselineCandidate;
 use Bpmore\StatamicLifecycle\State\BaselinePlanner;
 use Bpmore\StatamicLifecycle\State\EntryFacts;
+use Bpmore\StatamicLifecycle\State\LifecycleState;
+use Bpmore\StatamicLifecycle\State\OwnerSource;
+use Bpmore\StatamicLifecycle\State\Policy;
 use Bpmore\StatamicLifecycle\State\PriorState;
 use Bpmore\StatamicLifecycle\State\StateComputer;
 use Bpmore\StatamicLifecycle\Storage\LifecycleDatabase;
@@ -46,6 +49,7 @@ class BaselineLifecycle extends Command
         LifecycleDatabase $database,
         StateStore $store,
         StateComputer $computer,
+        Policy $policy,
         EntryFactsReader $reader,
         BaselinePlanner $planner,
     ): int {
@@ -154,6 +158,20 @@ class BaselineLifecycle extends Command
 
         $this->printSpread($plan, $candidates, $facts, $horizon, $horizonDays);
 
+        // ---- Compute ------------------------------------------------------
+
+        /** @var list<array{0: LifecycleState, 1: ?DateTimeImmutable}> */
+        $states = [];
+
+        foreach ($facts as $id => $entryFacts) {
+            $date = $plan[$id] ?? null;
+            $prior = new PriorState(baselined: true, baselineNextReviewAt: $date);
+
+            $states[] = [$computer->compute($entryFacts, $prior, $now), $date];
+        }
+
+        $this->printOwners(array_column($states, 0), $policy);
+
         // ---- Apply --------------------------------------------------------
 
         if ($dryRun) {
@@ -163,19 +181,79 @@ class BaselineLifecycle extends Command
             return self::SUCCESS;
         }
 
-        $written = $store->putMany((function () use ($facts, $plan, $computer, $now) {
-            foreach ($facts as $id => $entryFacts) {
-                $date = $plan[$id] ?? null;
-                $prior = new PriorState(baselined: true, baselineNextReviewAt: $date);
-
-                yield [$computer->compute($entryFacts, $prior, $now), $date];
-            }
-        })());
+        $written = $store->putMany($states);
 
         $this->newLine();
         $this->components->info(sprintf('Baselined %s %s.', number_format($written), $written === 1 ? 'entry' : 'entries'));
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Who would own what, and how sure that is.
+     *
+     * The dashboard has to tell "a person chose" from "we guessed" from
+     * "nobody, so the default". This is the same breakdown at the moment the
+     * guesses are made — with the two warnings that matter: nothing should
+     * be ownerless, and no one person should be guessed for most of a site,
+     * because that person is the import account.
+     *
+     * @param  list<LifecycleState>  $states
+     */
+    private function printOwners(array $states, Policy $policy): void
+    {
+        $assigned = $inferred = $fallback = $nobody = 0;
+        $inferredTo = [];
+
+        foreach ($states as $state) {
+            match ($state->ownerSource) {
+                OwnerSource::Assigned => $assigned++,
+                OwnerSource::Inferred => $inferred++,
+                OwnerSource::Fallback => $fallback++,
+                null => $nobody++,
+            };
+
+            if ($state->ownerSource === OwnerSource::Inferred) {
+                $inferredTo[$state->ownerId] = ($inferredTo[$state->ownerId] ?? 0) + 1;
+            }
+        }
+
+        $total = count($states);
+
+        $this->newLine();
+        $this->line('  <options=bold>Owners:</>');
+        $this->components->twoColumnDetail('  chosen by a person', number_format($assigned));
+        $this->components->twoColumnDetail('  inferred from the last author (a guess, kept out of the entry)', number_format($inferred));
+        $this->components->twoColumnDetail('  the owner of last resort', number_format($fallback));
+        $this->components->twoColumnDetail('  nobody', number_format($nobody));
+
+        if ($nobody > 0 && $policy->fallbackOwners === []) {
+            $this->newLine();
+            $this->components->warn(sprintf(
+                '%s %s nobody to remind. Name an owner of last resort under owners.fallback in config/lifecycle.php so nothing is ownerless.',
+                number_format($nobody),
+                $nobody === 1 ? 'entry has' : 'entries have',
+            ));
+        }
+
+        // One person guessed for most of the site is not a person, it is
+        // the account that ran the migration.
+        if ($inferredTo !== [] && $total >= 20) {
+            arsort($inferredTo);
+            $top = array_key_first($inferredTo);
+            $share = $inferredTo[$top] / $total;
+
+            if ($share >= 0.5) {
+                $this->newLine();
+                $this->components->warn(sprintf(
+                    '%s of %s entries (%d%%) would be guessed to one person, [%s]. If that is an import or admin account rather than someone who knows the content, add it to owners.never_infer and run again.',
+                    number_format($inferredTo[$top]),
+                    number_format($total),
+                    (int) round($share * 100),
+                    $top,
+                ));
+            }
+        }
     }
 
     /**

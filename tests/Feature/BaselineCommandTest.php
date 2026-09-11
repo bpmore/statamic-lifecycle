@@ -214,3 +214,73 @@ it('honours the horizon', function () {
 
     expect(EntryState::query()->max('next_review_at'))->toBeLessThanOrEqual('2026-12-11 00:00:00');
 });
+
+it('reports who would own what, and how sure that is', function () {
+    User::make()->id('bob')->email('bob@example.edu')->save();
+    config(['lifecycle.owners.fallback' => ['default' => 'bob']]);
+
+    publishedEntry('chosen', 'pages', '2020-01-01', [LifecycleFields::CONTENT_OWNER => 'alice']);
+    publishedEntry('guessed', 'pages', '2020-01-02', ['updated_by' => 'alice']);
+    publishedEntry('defaulted', 'pages', '2020-01-03');
+
+    $this->artisan('lifecycle:baseline', ['--dry-run' => true])
+        ->expectsOutputToContain('Owners:')
+        ->expectsOutputToContain('chosen by a person')
+        ->expectsOutputToContain('inferred from the last author')
+        ->expectsOutputToContain('the owner of last resort')
+        ->assertExitCode(0);
+
+    // The breakdown is of the states that would be written — so the same
+    // numbers a real run writes.
+    $this->artisan('lifecycle:baseline')->assertExitCode(0);
+
+    expect(EntryState::query()->pluck('owner_source', 'entry_id')->all())->toBe([
+        'chosen' => 'assigned',
+        'guessed' => 'inferred',
+        'defaulted' => 'fallback',
+    ]);
+});
+
+it('warns when pages would have nobody and no owner of last resort is named', function () {
+    publishedEntry('orphan', 'pages', '2020-01-01');
+
+    // One phrase per line: Laravel's expectsOutputToContain satisfies only
+    // the first matching expectation for each line written.
+    $this->artisan('lifecycle:baseline', ['--dry-run' => true])
+        ->expectsOutputToContain('1 entry has nobody to remind. Name an owner of last resort under owners.fallback')
+        ->assertExitCode(0);
+});
+
+it('warns when one person would be guessed for most of the site', function () {
+    // The migration account. Twenty-five pages, every one last saved by it.
+    for ($i = 0; $i < 25; $i++) {
+        publishedEntry("p-{$i}", 'pages', '2022-11-'.sprintf('%02d', 1 + $i % 28), ['updated_by' => 'alice']);
+    }
+
+    $this->artisan('lifecycle:baseline', ['--dry-run' => true])
+        ->expectsOutputToContain('25 of 25 entries (100%) would be guessed to one person, [alice]. If that is an import or admin account rather than someone who knows the content, add it to owners.never_infer')
+        ->assertExitCode(0);
+});
+
+it('does not guess a person the site has ruled out', function () {
+    config(['lifecycle.owners.never_infer' => ['alice']]);
+
+    publishedEntry('imported', 'pages', '2022-11-14', ['updated_by' => 'alice']);
+
+    $this->artisan('lifecycle:baseline')->assertExitCode(0);
+
+    expect(EntryState::query()->find('imported')->owner_id)->toBeNull()
+        ->and(EntryState::query()->find('imported')->owner_source)->toBeNull();
+});
+
+it('does not cry wolf on a handful of pages', function () {
+    // Three pages by one person is not a migration account; it is a site
+    // with three pages. The concentration warning needs a site to look at.
+    for ($i = 0; $i < 3; $i++) {
+        publishedEntry("p-{$i}", 'pages', '2022-11-0'.($i + 1), ['updated_by' => 'alice']);
+    }
+
+    $this->artisan('lifecycle:baseline', ['--dry-run' => true])
+        ->doesntExpectOutputToContain('would be guessed to one person')
+        ->assertExitCode(0);
+});
