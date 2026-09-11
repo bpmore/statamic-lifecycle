@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Bpmore\StatamicLifecycle;
 
+use Illuminate\Console\Scheduling\Schedule;
 use Statamic\Events\EntryBlueprintFound;
 use Statamic\Providers\AddonServiceProvider;
 
@@ -27,6 +28,7 @@ class ServiceProvider extends AddonServiceProvider
     protected $commands = [
         Commands\InstallLifecycle::class,
         Commands\BaselineLifecycle::class,
+        Commands\RecomputeLifecycle::class,
     ];
 
     public function bootAddon(): void
@@ -59,5 +61,25 @@ class ServiceProvider extends AddonServiceProvider
         $this->app->singleton(State\StateComputer::class, fn ($app): State\StateComputer => new State\StateComputer(
             $app->make(State\Policy::class),
         ));
+
+        $this->app->singleton(StateRecomputer::class, fn ($app): StateRecomputer => new StateRecomputer(
+            $app->make(Storage\StateStore::class),
+            $app->make(State\StateComputer::class),
+            $app->make(Entries\EntryFactsReader::class),
+            max(1, (int) $app['config']->get('lifecycle.recompute.chunk_size', 250)),
+            $app['config']->get('lifecycle.recompute.queue') ?: null,
+        ));
+    }
+
+    /**
+     * Spec §9: recompute daily. Skipped, quietly, until the site has run
+     * lifecycle:install — a scheduler log full of "not installed" every
+     * night is noise about an addon that has not been set up yet.
+     */
+    protected function schedule(Schedule $schedule): void
+    {
+        $schedule->command('lifecycle:recompute')
+            ->daily()
+            ->when(fn (): bool => $this->app->make(Storage\LifecycleDatabase::class)->isInstalled());
     }
 }

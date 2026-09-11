@@ -130,7 +130,92 @@ final class LifecycleDatabase
 
         $done[] = "Lifecycle tables are in place on [{$connection}].";
 
+        return [...$done, ...$this->ensureBatchTable()];
+    }
+
+    /**
+     * A recompute runs as a job batch, and Laravel keeps batch state in a
+     * table of its own on whatever connection `queue.batching.database`
+     * names. It does not create that table itself. A flat-file site has
+     * usually never run a migration, so the table is usually missing, and a
+     * nightly recompute that died on "no such table: job_batches" is not
+     * zero setup.
+     *
+     * Separate from install() so a site that installed an earlier version
+     * gets the table too, on its next `lifecycle:install`.
+     *
+     * @return list<string> what was done, one line each
+     */
+    public function ensureBatchTable(): array
+    {
+        $done = [];
+        $batching = (string) (config('queue.batching.database') ?: config('database.default'));
+        $table = (string) config('queue.batching.table', 'job_batches');
+
+        if ($this->createSqliteFileIfMissing($batching)) {
+            $done[] = "Created the database file for [{$batching}], which the queue keeps batch records in.";
+        }
+
+        if (Schema::connection($batching)->hasTable($table)) {
+            return $done;
+        }
+
+        // Prefer the site's own migration where it has one and the batching
+        // connection is the default that migration writes to, so a later
+        // `php artisan migrate` does not meet a job_batches it has no record
+        // of and stop with "table already exists".
+        $migration = $this->appMigrationCreating($table);
+
+        if ($migration !== null && $batching === (string) config('database.default')) {
+            Artisan::call('migrate', [
+                '--path' => $migration,
+                '--realpath' => true,
+                '--force' => true,
+            ]);
+
+            $done[] = "Ran the site's own ".basename($migration)." to create [{$table}] on [{$batching}].";
+
+            return $done;
+        }
+
+        Schema::connection($batching)->create($table, function ($t): void {
+            $t->string('id')->primary();
+            $t->string('name');
+            $t->integer('total_jobs');
+            $t->integer('pending_jobs');
+            $t->integer('failed_jobs');
+            $t->longText('failed_job_ids');
+            $t->mediumText('options')->nullable();
+            $t->integer('cancelled_at')->nullable();
+            $t->integer('created_at');
+            $t->integer('finished_at')->nullable();
+        });
+
+        $done[] = "Created the [{$table}] table on [{$batching}] for the queue's batch records.";
+
         return $done;
+    }
+
+    /**
+     * The site's own migration that creates the given table, if it has one.
+     * Laravel's stock jobs migration creates `job_batches` alongside `jobs`,
+     * so the file is found by reading rather than by name.
+     */
+    private function appMigrationCreating(string $table): ?string
+    {
+        $directory = $this->app->databasePath('migrations');
+
+        if (! is_dir($directory)) {
+            return null;
+        }
+
+        foreach (glob($directory.'/*.php') ?: [] as $file) {
+            if (str_contains((string) file_get_contents($file), "Schema::create('{$table}'")) {
+                return $file;
+            }
+        }
+
+        return null;
     }
 
     public function migrationPath(): string

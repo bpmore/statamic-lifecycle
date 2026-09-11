@@ -69,3 +69,20 @@ it('says so when there is nothing to do', function () {
 
     removeScratch($scratch);
 });
+
+it('adds the queue\'s batch table to an install that predates needing it', function () {
+    $scratch = scratchConnection(LifecycleDatabase::DEFAULT_CONNECTION);
+    config(['queue.batching.database' => LifecycleDatabase::DEFAULT_CONNECTION]);
+
+    $this->artisan('lifecycle:install')->assertExitCode(0);
+    Schema::connection(LifecycleDatabase::DEFAULT_CONNECTION)->drop('job_batches');
+
+    // Nothing of ours is pending, and the table is still put back.
+    $this->artisan('lifecycle:install')
+        ->expectsOutputToContain('Created the [job_batches] table on [lifecycle_sqlite]')
+        ->assertExitCode(0);
+
+    expect(Schema::connection(LifecycleDatabase::DEFAULT_CONNECTION)->hasTable('job_batches'))->toBeTrue();
+
+    removeScratch($scratch);
+});

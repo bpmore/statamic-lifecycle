@@ -110,4 +110,24 @@ return [
 
     'expired_after_days' => 30,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Recompute
+    |--------------------------------------------------------------------------
+    |
+    | `lifecycle:recompute` runs daily and brings every entry's state up to
+    | date. It is queued as a batch of jobs, this many entries to a job, on
+    | the queue named here (null for the default). With the sync queue driver
+    | it simply runs inline.
+    |
+    */
+
+    'recompute' => [
+
+        'chunk_size' => (int) env('LIFECYCLE_RECOMPUTE_CHUNK', 250),
+
+        'queue' => env('LIFECYCLE_QUEUE'),
+
+    ],
+
 ];

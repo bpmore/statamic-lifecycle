@@ -31,6 +31,12 @@ class InstallLifecycle extends Command
             $pending = $database->pendingMigrations();
 
             if ($pending === []) {
+                // Nothing of ours to run — but the queue's batch table is not
+                // ours, and an install from before it was needed may lack it.
+                foreach ($database->ensureBatchTable() as $line) {
+                    $this->components->info($line);
+                }
+
                 $this->components->info("Already installed on [{$connection}].");
 
                 return self::SUCCESS;

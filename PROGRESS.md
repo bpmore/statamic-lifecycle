@@ -13,7 +13,7 @@
 - [x] `lifecycle:baseline --horizon=12 --dry-run` with the staggering algorithm
 - [x] Verify the distribution is genuinely spread, not clustered, on a large fixture site
 - [x] Owners seeded from last author, flagged `inferred`
-- [ ] `lifecycle:recompute` as a queued batch
+- [x] `lifecycle:recompute` as a queued batch
 - [ ] Orphaned-state cleanup for deleted entries
 
 ## Phase 3 — Attestation (the paid value)
@@ -257,3 +257,28 @@
 - Left for later, deliberately: an `author` blueprint field as a second inference source. The
   spec says last author; on an imported site `author` is as likely to be the import account as
   `updated_by` is, and `never_infer` covers both. Revisit if a real site asks.
+
+### 2026-09-11 — lifecycle:recompute
+- **The suite's job pattern, as the spec asked**: `StateRecomputer` enumerates published entry IDs
+  lazily (`--site`, `--collection`), chunks them (`recompute.chunk_size`, default 250), and
+  dispatches a `Bus::batch` of `Jobs\RecomputeStates` named "Lifecycle recompute" with
+  `allowFailures` (a chunk that dies takes only itself down), on `recompute.queue` if named.
+  `--sync` runs the chunks inline with a progress bar. Same `recompute(ids, now)` unit of work
+  either way. Statamic wants the collection clause before the status clause; `entries()` obeys.
+- **What recompute does and does not touch**: published entries only. An entry deleted or
+  unpublished since enumeration is skipped and its row left alone — removing rows for what is
+  gone or no longer live is the next task (orphan cleanup), kept separate so this one stays
+  "compute". The baseline date and flag travel with the row through every recompute (tested:
+  "so the spread survives the first night"); a recompute that dropped them would undo the baseline
+  overnight.
+- **Scheduled daily** via `AddonServiceProvider::schedule()`, guarded with `->when(installed)` so
+  a site that has not run `lifecycle:install` gets silence rather than a nightly failure in the
+  scheduler log. `php please schedule:list` on the host shows `0 0 * * *`.
+- **`job_batches`**: Laravel's batch runner needs it on `queue.batching.database` and does not
+  create it; a flat-file site usually lacks it. `lifecycle:install` now ensures it — via the site's
+  own migration when there is one and the batching connection is the default (so a later
+  `migrate` does not trip over a table it has no record of), else by creating it — and does so on
+  the "already installed" path too, for installs that predate needing it. The host already had
+  it (Laravel's skeleton migrated); tests cover both the missing and the pre-existing case.
+- Verified on the host with the sync driver: "Queued 1 entry in 1 job", the batch record finished
+  with 0 failed, the row's `computed_at` moved; `--sync` reports "Recomputed 1 entry".

@@ -152,3 +152,21 @@ it('applies a migration added after the tables were first created', function () 
 
     removeScratch($scratch);
 });
+
+it('creates the table the queue keeps batch records in, where the site has none', function () {
+    // A flat-file site has never run a migration, so job_batches is missing,
+    // and a nightly recompute that died on "no such table" is not zero setup.
+    $scratch = scratchConnection('lifecycle_batching');
+    config(['queue.batching.database' => 'lifecycle_batching', 'queue.batching.table' => 'job_batches']);
+
+    $done = app(LifecycleDatabase::class)->install();
+
+    expect(Schema::connection('lifecycle_batching')->hasTable('job_batches'))->toBeTrue()
+        ->and(Schema::connection('lifecycle_batching')->hasColumn('job_batches', 'failed_job_ids'))->toBeTrue()
+        ->and($done)->toContain('Created the [job_batches] table on [lifecycle_batching] for the queue\'s batch records.');
+
+    // And leaves it alone the second time.
+    expect(app(LifecycleDatabase::class)->install())->not->toContain('Created the [job_batches] table on [lifecycle_batching] for the queue\'s batch records.');
+
+    removeScratch($scratch);
+});
