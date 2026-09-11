@@ -26,6 +26,7 @@ class ServiceProvider extends AddonServiceProvider
 
     protected $commands = [
         Commands\InstallLifecycle::class,
+        Commands\BaselineLifecycle::class,
     ];
 
     public function bootAddon(): void

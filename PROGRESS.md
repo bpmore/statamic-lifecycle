@@ -10,7 +10,7 @@
 - [x] State computation service: resolve effective interval (entry → blueprint → collection → global) and owner (assigned → inferred → fallback); pure and unit-tested
 
 ## Phase 2 — Baseline and recompute
-- [ ] `lifecycle:baseline --horizon=12 --dry-run` with the staggering algorithm
+- [x] `lifecycle:baseline --horizon=12 --dry-run` with the staggering algorithm
 - [ ] Verify the distribution is genuinely spread, not clustered, on a large fixture site
 - [ ] Owners seeded from last author, flagged `inferred`
 - [ ] `lifecycle:recompute` as a queued batch
@@ -177,3 +177,33 @@
   v1; the column is there for groups.
 - Verified on the host: a real entry computes through the container — global yearly, next review a
   year after last modification, fresh.
+
+### 2026-09-11 — lifecycle:baseline
+- **The staggering algorithm is pure** (`State\BaselinePlanner`, unit-tested with 10,000 synthetic
+  entries in 20ms): group by window = min(horizon, entry's interval); within a group, entry *i* of
+  *N* lands on day `1 + floor(i × window / N)`, ordered by last modification (ties by ID, so two
+  runs agree). Even, not capped: clamping a quarterly page's date to day 90 would pile every
+  quarterly page on day 90, which is the cluster this exists to prevent. Horizon is calendar months
+  (`today + N months`), so 12 is a year in any year. A lone entry lands tomorrow, not at the horizon.
+- **Which entries are in** (the command's call, not the planner's): `whereStatus('published')`
+  only — drafts are Workflows territory and do not go stale. Skipped: anything already baselined or
+  with a recorded review. Entries with their own `review_by` are flagged baselined but not spread;
+  the deadline wins in the computation anyway. Statamic 6 throws on `where('status', …)`; it is
+  `whereStatus()` now.
+- **Persistence arrived with this task**, as it had to: `Models\EntryState` (connection read at call
+  time) and `Storage\StateStore` — the one place a `LifecycleState` becomes a row and a `PriorState`
+  is read from one. Chunked upserts (500/statement: 1,200 rows = 3 statements, tested) and chunked
+  prior lookups. Migration 000500 added `baseline_review_at` (the assigned date must survive a hard
+  deadline overriding `next_review_at`), `interval_source` and `next_review_source` (so listings can
+  explain a row without recomputing). The upgrade path ran for real on the host: "Applied 1 new
+  migration."
+- **The dry run is the evidence.** It prints the per-month histogram and per-collection windows
+  before anything is written, and the same summary after. That is what the next task ("verify the
+  distribution is genuinely spread on a large fixture site") should read.
+- The rows carry `owner_id`/`owner_source = inferred` because that is what the computer returns
+  and a row cannot be half-written — so the "owners seeded from last author" task is now
+  verification plus surfacing the count, not new machinery. The entry file is never touched
+  (checked on the host by mtime).
+- Memory: all facts for the run are held in memory (an `EntryFacts` is a few hundred bytes; 40,000
+  is a few tens of MB). Entries stream through `lazy(500)`. Fine for the target; the large-fixture
+  task will say for sure.

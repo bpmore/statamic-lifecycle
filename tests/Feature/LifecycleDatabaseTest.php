@@ -73,7 +73,8 @@ it('answers "not installed" rather than throwing when the file is not there yet'
 
     expect(app(LifecycleDatabase::class)->isInstalled())->toBeFalse()
         // And every migration is pending, for the same reason.
-        ->and(app(LifecycleDatabase::class)->pendingMigrations())->toHaveCount(4);
+        ->and(app(LifecycleDatabase::class)->pendingMigrations())
+        ->toHaveCount(count(glob(app(LifecycleDatabase::class)->migrationPath().'/*.php')));
 });
 
 it('creates the file, its directory and the tables on install', function () {
@@ -146,7 +147,8 @@ it('applies a migration added after the tables were first created', function () 
     $database->install();
 
     expect($database->pendingMigrations())->toBe([])
-        ->and(Schema::connection('lifecycle_upgrade')->hasTable('lifecycle_actions'))->toBeTrue();
+        // The newest migration, as of this writing, adds these.
+        ->and(Schema::connection('lifecycle_upgrade')->hasColumn('lifecycle_states', 'baseline_review_at'))->toBeTrue();
 
     removeScratch($scratch);
 });

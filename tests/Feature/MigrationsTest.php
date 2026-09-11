@@ -32,9 +32,10 @@ it('gives lifecycle_states the columns spec §3 names, keyed by entry', function
     expect(Schema::getColumnListing('lifecycle_states'))->toEqualCanonicalizing([
         'entry_id', 'site', 'collection',
         'owner_id', 'owner_type', 'owner_source',
-        'interval_days', 'last_reviewed_at', 'last_reviewed_by',
-        'next_review_at', 'status',
-        'baselined', 'computed_at',
+        'interval_days', 'interval_source',
+        'last_reviewed_at', 'last_reviewed_by',
+        'next_review_at', 'next_review_source', 'status',
+        'baselined', 'baseline_review_at', 'computed_at',
     ]);
 
     $primary = collect(Schema::getIndexes('lifecycle_states'))->firstWhere('primary', true);
