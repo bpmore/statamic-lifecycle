@@ -5,7 +5,7 @@
 
 ## Phase 1 — Foundations
 - [x] Scaffold the addon package, tests, CI
-- [ ] Migrations: `lifecycle_states`, `lifecycle_reviews`, `lifecycle_notifications`, `lifecycle_actions` (index `next_review_at`)
+- [x] Migrations: `lifecycle_states`, `lifecycle_reviews`, `lifecycle_notifications`, `lifecycle_actions` (index `next_review_at`)
 - [ ] Blueprint fields: `content_owner`, `review_interval`, optional `review_by`
 - [ ] State computation service: resolve effective interval (entry → blueprint → collection → global) and owner (assigned → inferred → fallback); pure and unit-tested
 
@@ -78,3 +78,36 @@
 - `.gitignore` excludes `.claude/settings.local.json` and `build-log.jsonl` (the unattended-run log);
   `.claude/settings.json`, `CLAUDE.md`, `PROGRESS.md`, `SPEC.md` and `run-build.sh` are committed,
   matching the sibling.
+
+### 2026-09-11 — Migrations
+- **Storage follows the sibling's pattern, deliberately.** Tables live on an addon-owned SQLite
+  file (`storage/lifecycle/lifecycle.sqlite`, connection `lifecycle_sqlite`) unless
+  `lifecycle.connection` names one of the site's own. `php please lifecycle:install` creates the
+  file and runs the migrations there; it asks first on a site-administered connection (`--force`
+  skips the question) and applies only pending migrations on an existing install. Migrations are
+  **not** `loadMigrationsFrom`-registered — that would let `php please migrate` run them on the
+  default connection while the install ran them on the configured one, with two records of what
+  ran. A site that owns A11y Docs too gets the same install story. `config/lifecycle.php` now
+  exists with the one key this consumes.
+- `lifecycle:install` is not in the spec's §9 command list; it is the prerequisite for all of them.
+- Schema deviations from the spec §3 sketch, each small: `lifecycle_actions.reverted_by` added
+  (the sibling shipped without `revoked_by` on its exemption log and had to add it — a revert
+  without attribution is the thing the table exists to rule out); date columns are `dateTime`,
+  not `timestamp`, so a hard `review_by` past 2038 on MySQL does not throw; `owner_*` and
+  `interval_days` / `next_review_at` nullable (no owner with no owner-of-last-resort, and exempt
+  entries, are legitimate states). `lifecycle_states` has no Laravel timestamps — `computed_at`
+  is the meaningful one.
+- Indexes beyond the mandated `next_review_at`: `status`, `collection`, `site`,
+  `(owner_type, owner_id)` on states; `(entry_id, reviewed_at)`, `reviewed_at`, `reviewed_by` on
+  reviews; `(entry_id, type)`, `(recipient, sent_at)` on notifications; `(entry_id, applied_at)`,
+  `applied_at` (the daily cap counts against it) on actions. All from spec §5/§6/§8 queries.
+- **Open question for the attestation task:** `lifecycle_reviews` has no `site`/`collection`. The
+  review record must outlive the entry (no FK to states, on purpose), but the governance report
+  wants activity by collection; once the entry is gone the join is gone. Add the two denormalised
+  columns then, in a new migration, rather than guess now.
+- No Eloquent models yet. Spec §10 groups "migrations and models"; this task line says migrations,
+  and nothing reads or writes rows until Phase 2. The first task that does adds them, reading the
+  connection at call time (not a `$connection` property) so a config change is honoured.
+- Verified on the host site: install creates `storage/lifecycle/{lifecycle.sqlite,.gitignore}`,
+  four tables plus `migrations` on that file, the site's `database.sqlite` untouched, a second run
+  says "Already installed", CP still renders. The host file is left in place for the next tasks.
