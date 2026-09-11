@@ -23,7 +23,7 @@
 - [x] Publish-form sidebar panel
 
 ## Phase 4 — Bulk assignment (adoption depends on this)
-- [ ] Assign by structure branch
+- [x] Assign by structure branch
 - [ ] Assign by collection / blueprint / author / taxonomy term
 - [ ] CSV import (URL or entry ID → owner)
 - [ ] Bulk action in the CP listing
@@ -399,3 +399,27 @@
   a site gets that on `composer update`.
 - **Phase 3 is complete.** The paid value exists end to end: attest from the listing or the entry,
   never touch the entry, keep the record, show it where the editor works.
+
+### 2026-09-11 — Assign by structure branch
+- **The shape for all of Phase 4**: a selector produces an `Assignment\Selection` (a description in
+  words plus the entries), `Assignment\OwnerAssigner::assign(entries, ownerId, dryRun)` writes
+  `content_owner` and returns what changed, and `lifecycle:assign` is the command they meet in.
+  The next selectors (collection, blueprint, author, term, CSV) plug into `AssignOwner::selection()`.
+- **`Selectors\Branch`**: the page at a URI in one site's tree (`--site`, default the default site)
+  plus every entry beneath it via `page()->flattenedPages()`; tree nodes that are not entries are
+  left out. A URI in a collection with no structure gets "assign by collection instead".
+- **This is the one operation in the addon that writes entries, on purpose** — an owner is content
+  (spec §3). So it behaves like an editor: saves only the entries whose owner actually changes
+  (`value()`, so a localisation synced to an origin that already has the owner is left synced),
+  does **not** stamp `updated_by`/`updated_at` — whoever ran the assignment did not edit the page,
+  and making them the last author would make them the inferred owner everywhere — then recomputes
+  the rows it touched so the dashboard says "chosen" at once. Each save fires `EntrySaved`, so git
+  automation commits it where that is on: that is the point.
+- The command previews with a dry pass, prints "N would get X as owner, M already have them",
+  asks before writing (`--force` for scripts), and offers `--dry-run`. Owner by user ID or email.
+- Not written: a bare `Entry::save()` bumps the file's mtime, and for an entry with no `updated_at`
+  in its data and no baseline, `lastModified()` is the mtime — so assigning could nudge such an
+  entry's "last modified + interval" date forward. Baselined sites are unaffected (their date is
+  kept), and sites tracking last update have `updated_at`. Noted; not worth fighting the file system.
+- Verified on the host: `--branch=/` on the structured `pages` collection assigned the home page,
+  the file carries `content_owner`, the row says `assigned`.

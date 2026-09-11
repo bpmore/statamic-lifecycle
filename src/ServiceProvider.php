@@ -45,6 +45,7 @@ class ServiceProvider extends AddonServiceProvider
         Commands\InstallLifecycle::class,
         Commands\BaselineLifecycle::class,
         Commands\RecomputeLifecycle::class,
+        Commands\AssignOwner::class,
     ];
 
     public function bootAddon(): void
