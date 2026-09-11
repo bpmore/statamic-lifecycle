@@ -18,7 +18,7 @@
 
 ## Phase 3 — Attestation (the paid value)
 - [x] "Mark reviewed" action — records who, when, note, outcome
-- [ ] **Confirm it does not write to the entry or create a revision**
+- [x] **Confirm it does not write to the entry or create a revision**
 - [ ] Review history model + per-entry timeline
 - [ ] Publish-form sidebar panel
 
@@ -329,3 +329,23 @@
   `attest reviews` permission arrives with Phase 7's permissions task and replaces it.
 - The `--dashboard--` half of spec §4's "in the publish-form sidebar and in the dashboard" is
   Phase 7; the sidebar panel is task 4 of this phase and will call this same action.
+
+### 2026-09-11 — Confirmed: attestation touches nothing
+- `tests/Feature/AttestationTouchesNothingTest.php`, with **revisions turned on** (Pro + the
+  collection's `revisionsEnabled`) and through the **real CP action endpoint** as well as the
+  service. Five proofs, each a different mechanism:
+  1. revision count and latest revision ID unchanged, no working copy, exactly one revision file on
+     disk, and the record points at the revision that was reviewed;
+  2. `Entry::partialMock()->shouldNotReceive('save')` — the repository is never asked to save;
+  3. `Event::fake` on `EntryCreating/Created/Saving/Saved`: none dispatched (A11y Gate listens on
+     `EntrySaving`, git automation on `EntrySaved`), with a control that a real save *is* heard;
+  4. file bytes identical, mtime pinned and unchanged, `lastModified()`/`updated_by`/data unchanged;
+  5. the same through the service directly, since that is where the guarantee lives.
+- **Sabotaged to check the checks**: with `$entry->save()` added to `RecordReview`, proofs 2–5 fail.
+  Proof 1 does not — a bare `Entry::save()` does not create a revision in Statamic; only the CP
+  publish flow does. So proof 1 shows the action does not route through that flow, and 2–5 catch
+  a bare save. The comment in the test says so.
+- Revisions are a Stache store, so `PreventsSavingStacheItemsToDisk` already redirects them into the
+  throwaway fixture directory; no `statamic.revisions.path` config needed and nothing left behind.
+- The host runs Solo with revisions off (`STATAMIC_PRO_ENABLED=false`); it confirms no working copy
+  and an unchanged file. The revisions-on proof is the suite's.
