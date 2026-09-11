@@ -20,6 +20,10 @@ class ServiceProvider extends AddonServiceProvider
         ],
     ];
 
+    protected $actions = [
+        Actions\MarkReviewed::class,
+    ];
+
     protected $vite = [
         'input' => ['resources/js/cp.js'],
         'publicDirectory' => 'resources/dist',

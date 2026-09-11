@@ -17,7 +17,7 @@
 - [x] Orphaned-state cleanup for deleted entries
 
 ## Phase 3 — Attestation (the paid value)
-- [ ] "Mark reviewed" action — records who, when, note, outcome
+- [x] "Mark reviewed" action — records who, when, note, outcome
 - [ ] **Confirm it does not write to the entry or create a revision**
 - [ ] Review history model + per-entry timeline
 - [ ] Publish-form sidebar panel
@@ -304,3 +304,28 @@
 - Verified on the host: a hand-inserted ghost row was swept by the queued run; a real entry's row
   vanished on `delete()`; the file was gone and nothing else was.
 - **Phase 2 is complete.** Baseline and recompute are trustworthy on real data at 40,000 entries.
+
+### 2026-09-11 — "Mark reviewed"
+- **The write path is one class**, `Reviews\RecordReview::record(entry, reviewerId, outcome, note?, at?)`:
+  appends a `lifecycle_reviews` row and brings the entry's `lifecycle_states` row up to date through
+  the same computer everything else uses, with the review as the new prior. It never writes to the
+  entry — tested by hashing the file and pinning its mtime before and after, and checked the same
+  way on the host. Task 2 adds the revisions-enabled check.
+- **Statamic action** `Actions\MarkReviewed` (handle `mark_reviewed`): offered on entries in the
+  listing and the entry's action menu, one or many; a required outcome (select) and an optional
+  note; `bypassesDirtyWarning` because nothing it does can lose an unsaved edit. Tested through the
+  real CP endpoint (`collections.entries.actions.run`): records for each selection as the current
+  user, 422 on a missing or unknown outcome, 403 for a user who cannot edit the entry.
+- **Outcomes** (`Reviews\Outcome`) in the reviewer's words: "Still current", "I updated it",
+  "Needs a rewrite, and one is planned", "Retire it". Stored as `current | updated |
+  rewrite_scheduled | retired`.
+- **Decisions**: `content_changed` is a fact about the interval — was the entry modified after
+  the *previous* review — not a claim about this one (the reviewer's own edits are what `updated`
+  says); false on a first review. `entry_revision_ref` is `revision:<id>` where revisions are on,
+  `modified:<timestamp>` where they are not. A backdated `at` is allowed (a review recorded after
+  the fact) and `created_at` says when it was recorded. A draft can be reviewed — the record is
+  the record — but gets no state row, since state exists only while published.
+- **Authorization is provisional**: whoever can edit the entry may attest. Spec §8's dedicated
+  `attest reviews` permission arrives with Phase 7's permissions task and replaces it.
+- The `--dashboard--` half of spec §4's "in the publish-form sidebar and in the dashboard" is
+  Phase 7; the sidebar panel is task 4 of this phase and will call this same action.
