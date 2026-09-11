@@ -25,7 +25,7 @@
 ## Phase 4 — Bulk assignment (adoption depends on this)
 - [x] Assign by structure branch
 - [x] Assign by collection / blueprint / author / taxonomy term
-- [ ] CSV import (URL or entry ID → owner)
+- [x] CSV import (URL or entry ID → owner)
 - [ ] Bulk action in the CP listing
 - [ ] Owner-of-last-resort per site
 
@@ -445,3 +445,25 @@
   throwaway fixture directory; a partial mock of the repository breaks the fallback blueprint for
   every other collection.
 - Verified on the host with dry runs of each selector and each error message.
+
+### 2026-09-11 — CSV import
+- `lifecycle:assign --csv=file [--owner=default] [--site=] [--dry-run] [--force]`. Each row names its
+  own entry (a full URL, a URI or an ID) and its own owner (ID or email), so it is a mode of the
+  command rather than a selector — `Selection` carries one owner. `Assignment\Csv\OwnerCsv` reads
+  it into a `CsvPlan` (entries grouped by owner, problems by line); the command previews per owner,
+  asks, then runs the assigner once per owner.
+- **Built for the file a department sends back**: header row or none (columns found by name —
+  entry/url/uri/id/path/page and owner/email/user — in any order, other columns ignored), a BOM
+  (stripped *before* trimming, or a leading space behind it survives), CRLF, blank lines, whitespace.
+  A row that cannot be used is reported by line number and the rest go ahead — one bad URL must not
+  hold up four hundred good ones — and the exit code is non-zero when any row was bad, so a script
+  notices. A later row for the same entry wins. `--owner` fills rows with no owner cell.
+- **A URL pasted from a browser carries the site's path prefix**: `/fr/cardiologie` for a page
+  whose URI within the French site is `/cardiologie`. Each site is tried with the path as given
+  and with its own prefix removed; `--site` narrows to one.
+- **Statamic 6 gates multisite behind `statamic.system.multisite`**: without it a collection
+  quietly keeps only the default site and routes nothing elsewhere. Earlier multisite tests passed
+  because they filtered on the entry's locale, not on routes. Any test that needs a URI in a second
+  site must set the flag; the CSV test does.
+- Verified on the host with a CRLF file, a header with extra columns, a full URL, a draft, and two
+  deliberately bad rows.

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Bpmore\StatamicLifecycle\Commands;
 
+use Bpmore\StatamicLifecycle\Assignment\Csv\CsvPlan;
+use Bpmore\StatamicLifecycle\Assignment\Csv\OwnerCsv;
 use Bpmore\StatamicLifecycle\Assignment\OwnerAssigner;
 use Bpmore\StatamicLifecycle\Assignment\Selection;
 use Bpmore\StatamicLifecycle\Assignment\Selectors\Branch;
@@ -32,7 +34,8 @@ class AssignOwner extends Command
     use RunsInPlease;
 
     protected $signature = 'lifecycle:assign
-        {--owner= : The owner to assign, by user ID or email}
+        {--owner= : The owner to assign, by user ID or email (with --csv: the owner for rows that name none)}
+        {--csv= : A file of entries and owners, one per row: a URL, URI or ID, then a user ID or email}
         {--branch= : Every page at and under this URI in a structured collection}
         {--collection= : Every entry in this collection}
         {--blueprint= : Every entry using this blueprint (within --collection, if given)}
@@ -46,17 +49,21 @@ class AssignOwner extends Command
 
     public function handle(OwnerAssigner $assigner): int
     {
-        $owner = $this->owner();
-
-        if ($owner === null) {
-            return self::FAILURE;
-        }
-
         $site = $this->option('site') ?: null;
 
         if ($site !== null && ! Site::all()->has($site)) {
             $this->components->error("There is no site called [{$site}].");
 
+            return self::FAILURE;
+        }
+
+        if ($csv = $this->option('csv')) {
+            return $this->fromCsv((string) $csv, $site, $assigner);
+        }
+
+        $owner = $this->owner();
+
+        if ($owner === null) {
             return self::FAILURE;
         }
 
@@ -122,6 +129,112 @@ class AssignOwner extends Command
         ));
 
         return self::SUCCESS;
+    }
+
+    /**
+     * The spreadsheet a department sends back: each row its own entry and
+     * its own owner. Rows that cannot be used are listed by line, and the
+     * rest go ahead — one bad URL should not hold up four hundred good ones.
+     */
+    private function fromCsv(string $path, ?string $site, OwnerAssigner $assigner): int
+    {
+        try {
+            $plan = (new OwnerCsv)->read($path, $site, $this->option('owner') ?: null);
+        } catch (InvalidArgumentException $e) {
+            $this->components->error($e->getMessage());
+
+            return self::FAILURE;
+        }
+
+        $this->components->info(sprintf(
+            '%s: %s %s naming %s %s for %s %s.',
+            basename($path),
+            number_format($plan->rows),
+            $plan->rows === 1 ? 'row' : 'rows',
+            number_format($plan->entries()),
+            $plan->entries() === 1 ? 'entry' : 'entries',
+            number_format($plan->owners()),
+            $plan->owners() === 1 ? 'owner' : 'owners',
+        ));
+
+        $this->printProblems($plan);
+
+        if ($plan->byOwner === []) {
+            $this->components->warn('Nothing usable in the file.');
+
+            return $plan->problems === [] ? self::SUCCESS : self::FAILURE;
+        }
+
+        // A dry pass per owner, for the numbers.
+        $wouldChange = 0;
+        $already = 0;
+
+        foreach ($plan->byOwner as $ownerId => $entries) {
+            $preview = $assigner->assign($entries, $ownerId, dryRun: true);
+            $wouldChange += count($preview->assigned);
+            $already += count($preview->unchanged);
+
+            $this->components->twoColumnDetail(
+                '  '.$plan->ownerNames[$ownerId],
+                sprintf('%s %s, %s already theirs', number_format(count($preview->assigned)), count($preview->assigned) === 1 ? 'entry' : 'entries', number_format(count($preview->unchanged))),
+            );
+        }
+
+        if ($wouldChange === 0) {
+            $this->components->info('Nothing to change.');
+
+            return self::SUCCESS;
+        }
+
+        if ($this->option('dry-run')) {
+            $this->components->warn('Dry run: nothing was written.');
+
+            return self::SUCCESS;
+        }
+
+        if (! $this->option('force') && ! $this->confirm(
+            sprintf('Write content_owner on %s %s? Each is saved like an edit.', number_format($wouldChange), $wouldChange === 1 ? 'entry' : 'entries'),
+            true,
+        )) {
+            $this->components->warn('Nothing was changed.');
+
+            return self::FAILURE;
+        }
+
+        $assigned = 0;
+
+        foreach ($plan->byOwner as $ownerId => $entries) {
+            $assigned += count($assigner->assign($entries, $ownerId)->assigned);
+        }
+
+        $this->components->info(sprintf(
+            'Assigned owners to %s %s, and recomputed their review state.',
+            number_format($assigned),
+            $assigned === 1 ? 'entry' : 'entries',
+        ));
+
+        return $plan->problems === [] ? self::SUCCESS : self::FAILURE;
+    }
+
+    private function printProblems(CsvPlan $plan): void
+    {
+        if ($plan->problems === []) {
+            return;
+        }
+
+        $this->components->warn(sprintf(
+            '%s %s could not be used:',
+            number_format(count($plan->problems)),
+            count($plan->problems) === 1 ? 'row' : 'rows',
+        ));
+
+        foreach (array_slice($plan->problems, 0, 50) as $problem) {
+            $this->line("    line {$problem->line}: {$problem->reason}");
+        }
+
+        if (count($plan->problems) > 50) {
+            $this->line('    … and '.number_format(count($plan->problems) - 50).' more.');
+        }
     }
 
     private function owner(): ?UserContract
