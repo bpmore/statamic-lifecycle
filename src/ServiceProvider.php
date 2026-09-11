@@ -4,10 +4,17 @@ declare(strict_types=1);
 
 namespace Bpmore\StatamicLifecycle;
 
+use Statamic\Events\EntryBlueprintFound;
 use Statamic\Providers\AddonServiceProvider;
 
 class ServiceProvider extends AddonServiceProvider
 {
+    protected $listen = [
+        EntryBlueprintFound::class => [
+            Listeners\AddLifecycleFieldsToBlueprint::class,
+        ],
+    ];
+
     protected $vite = [
         'input' => ['resources/js/cp.js'],
         'publicDirectory' => 'resources/dist',

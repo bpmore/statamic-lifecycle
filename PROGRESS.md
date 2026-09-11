@@ -6,7 +6,7 @@
 ## Phase 1 — Foundations
 - [x] Scaffold the addon package, tests, CI
 - [x] Migrations: `lifecycle_states`, `lifecycle_reviews`, `lifecycle_notifications`, `lifecycle_actions` (index `next_review_at`)
-- [ ] Blueprint fields: `content_owner`, `review_interval`, optional `review_by`
+- [x] Blueprint fields: `content_owner`, `review_interval`, optional `review_by`
 - [ ] State computation service: resolve effective interval (entry → blueprint → collection → global) and owner (assigned → inferred → fallback); pure and unit-tested
 
 ## Phase 2 — Baseline and recompute
@@ -111,3 +111,32 @@
 - Verified on the host site: install creates `storage/lifecycle/{lifecycle.sqlite,.gitignore}`,
   four tables plus `migrations` on that file, the site's `database.sqlite` untouched, a second run
   says "Already installed", CP still renders. The host file is left in place for the next tasks.
+
+### 2026-09-11 — Blueprint fields
+- **Injected, not imported.** A listener on `EntryBlueprintFound` (the hook Statamic's own
+  `AddSiteColumnToBlueprint` uses) calls `ensureFieldsInTab(..., 'sidebar')`, so every entry
+  blueprint gets the three fields with no setup — core adds `slug`/`date`/taxonomies the same way.
+  A site that wants a field elsewhere declares the handle in its blueprint: `ensureField` keeps the
+  site's position and lets the site's config win, ours fills only what was left unsaid (tested).
+  No shipped fieldset, on purpose — it would be a second copy of the definition to keep in step.
+- `Blueprint\LifecycleFields` is the one source of truth: handle constants (`CONTENT_OWNER`,
+  `REVIEW_INTERVAL`, `REVIEW_BY`) for later tasks to read, the field configs, and the interval table.
+- **Intervals are stored by name, not by number**: `review_interval: quarterly`, not `90`. Reads as
+  intent in a diff (spec §3's "an author saying quarterly is content"), and sidesteps the select
+  fieldtype's strict-equality label lookup on numeric keys. `LifecycleFields::intervalDays(name)`
+  maps to days (30 / 90 / 180 / 365 / 730 / 1095) and returns null for an unknown name — a site
+  that swaps in its own options is the computation service's problem to resolve, not an error here.
+- Owner is a `users` field, `max_items: 1` (spec §11: schema supports groups, v1 UI offers users).
+  `review_by` is a date without a time. All three `localizable: true` (per-site owner and cadence)
+  and `listable: 'hidden'` — available as a column and a filter for Phase 4's filtered bulk
+  selection, without redesigning every entry listing.
+- **Not done, deliberately:** no config for which collections get the fields. That is the
+  "which collections does Lifecycle govern" question, and the baseline/recompute tasks are its
+  other consumers; better designed once with all three in view. Until then every collection gets
+  them. Also: a blueprint-level *default* interval is not the field's `default:` (that would write
+  an explicit value into every new entry rather than inherit) — the computation task decides how
+  blueprint and collection defaults are expressed.
+- Noticed for later: Statamic 6's `AddonServiceProvider::registerSettingsBlueprint` gives addons a
+  settings screen in the CP. Worth using for the Phase 5–7 configuration instead of config-only.
+- Verified on the host site: a real `pages` entry's blueprint has the three fields in the sidebar
+  after `slug`, with the six interval options reaching the fieldtype's preload.
