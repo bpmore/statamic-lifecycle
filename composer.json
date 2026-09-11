@@ -1,0 +1,69 @@
+{
+    "name": "bpmore/statamic-lifecycle",
+    "description": "Content review dates, ownership, attestation and expiry for Statamic 6.",
+    "type": "statamic-addon",
+    "keywords": [
+        "statamic",
+        "governance",
+        "content-lifecycle",
+        "content-review",
+        "content-ownership"
+    ],
+    "homepage": "https://github.com/bpmore/statamic-lifecycle",
+    "license": "proprietary",
+    "support": {
+        "issues": "https://github.com/bpmore/statamic-lifecycle/issues",
+        "source": "https://github.com/bpmore/statamic-lifecycle",
+        "docs": "https://github.com/bpmore/statamic-lifecycle/blob/main/README.md"
+    },
+    "authors": [
+        {
+            "name": "Brent Passmore"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "statamic/cms": "^6.0"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.18",
+        "orchestra/testbench": "^10.8 || ^11.0",
+        "pestphp/pest": "^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Bpmore\\StatamicLifecycle\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Bpmore\\StatamicLifecycle\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "statamic": {
+            "name": "Lifecycle",
+            "slug": "lifecycle",
+            "description": "Review dates, owners and an attestation record for content that is already published."
+        },
+        "laravel": {
+            "providers": [
+                "Bpmore\\StatamicLifecycle\\ServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "pixelfear/composer-dist-plugin": true,
+            "php-http/discovery": true
+        },
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "scripts": {
+        "test": "pest",
+        "lint": "pint"
+    }
+}

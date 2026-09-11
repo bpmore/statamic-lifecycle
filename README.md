@@ -1,0 +1,36 @@
+# Lifecycle
+
+**Content review dates, ownership, attestation and expiry for Statamic 6.**
+
+Every page on an institutional site has someone who is supposed to know whether
+it is still true, and almost none of them have a record of when that person last
+checked. Lifecycle gives each entry an owner, a review interval and a next review
+date; lets the owner record that they reviewed it; and keeps that record where an
+auditor can find it.
+
+Lifecycle governs content that is *already published*. Drafts, approvals and
+editorial sign-off before publish are Statamic's own territory, and this addon
+stays out of it.
+
+> **Pre-release.** The package scaffold is in place; the product is being built
+> phase by phase and is not yet installable for use. This file will be rewritten
+> before 1.0.
+
+## Development
+
+The addon is developed on its own and linked into a host site through a Composer
+path repository, which is the layout Statamic recommends for an addon reused
+across projects.
+
+```
+composer install
+vendor/bin/pest            # tests
+vendor/bin/pint            # formatting
+npm install && npm run build   # control panel assets (the build is committed)
+```
+
+Requires PHP 8.2+ and Statamic 6.
+
+## Licence
+
+Sold, one licence per production site. See [LICENSE.md](LICENSE.md).
