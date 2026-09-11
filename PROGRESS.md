@@ -19,7 +19,7 @@
 ## Phase 3 — Attestation (the paid value)
 - [x] "Mark reviewed" action — records who, when, note, outcome
 - [x] **Confirm it does not write to the entry or create a revision**
-- [ ] Review history model + per-entry timeline
+- [x] Review history model + per-entry timeline
 - [ ] Publish-form sidebar panel
 
 ## Phase 4 — Bulk assignment (adoption depends on this)
@@ -349,3 +349,20 @@
   throwaway fixture directory; no `statamic.revisions.path` config needed and nothing left behind.
 - The host runs Solo with revisions off (`STATAMIC_PRO_ENABLED=false`); it confirms no working copy
   and an unchanged file. The revisions-on proof is the suite's.
+
+### 2026-09-11 — Review history and the per-entry timeline
+- `Models\Review` came with task 1; this task is the read side. `Reviews\ReviewHistory::for(id)`
+  and `forMany(ids)` (one query, each reviewer looked up once) return a `Reviews\Timeline`: a list
+  of `ReviewRecord`s newest first, with `latest()`, `count()`, `isEmpty()`, `reviewedSince(date)`,
+  and a JSON-friendly `toArray()` (ISO dates, outcome value *and* label) for the sidebar panel,
+  the dashboard, the Antlers tags and the report to share. One place a row becomes a record.
+- **Timeline = reviews only**, the compliance record. The baseline date is state, not history, and
+  belongs in the panel's summary next to "next review"; automated actions (Phase 6) will get their
+  own list. Keeping the timeline to attestations keeps it the thing an auditor asks for.
+- **Reviewer resolution**: existence and display name are two questions. Statamic's `User::name()`
+  is null for a user with no name fields, so the first cut marked such a user as "gone"; now
+  `reviewerExists` comes from `User::find` and the name falls back to the email, and only a
+  reviewer who has actually left keeps their stored ID as the name (never blank — a record that
+  named nobody is a weaker record).
+- Verified on the host: the two attestations recorded today read back newest first with the
+  reviewer's name.
