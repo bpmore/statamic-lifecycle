@@ -20,7 +20,7 @@
 - [x] "Mark reviewed" action — records who, when, note, outcome
 - [x] **Confirm it does not write to the entry or create a revision**
 - [x] Review history model + per-entry timeline
-- [ ] Publish-form sidebar panel
+- [x] Publish-form sidebar panel
 
 ## Phase 4 — Bulk assignment (adoption depends on this)
 - [ ] Assign by structure branch
@@ -366,3 +366,36 @@
   named nobody is a weaker record).
 - Verified on the host: the two attestations recorded today read back newest first with the
   reviewer's name.
+
+### 2026-09-11 — Publish-form sidebar panel
+- **A display-only fieldtype, the Statamic-native way to put a panel in the sidebar** (the
+  sibling's `DocumentStatus` pattern). `Fieldtypes\LifecycleStatus` (handle `lifecycle_status`) is
+  ensured onto every entry blueprint's sidebar under the three inputs with `visibility: computed`
+  — Statamic excludes computed fields from the values a save writes — and its `process()` returns
+  null besides. Tested through the real CP update endpoint with a smuggled value: nothing reaches
+  the file. `Panel\SidebarPanel::for(entry)` builds the whole payload (status + colour, next review
+  and *why*, interval and *why*, owner and how sure, last review, timeline, outcomes, whether the
+  user may attest, the two URLs); the fieldtype's `preProcess()` hands it to the form, and
+  `GET cp/lifecycle/entries/{entry}/status` hands it back fresh after a review.
+- **The button posts to the same action the listing uses** (`mark_reviewed` via
+  `collections.entries.actions.run`) and then re-reads the payload from the refresh route, so the
+  panel never shows something it worked out for itself. Validation and authorisation are the
+  action's; the panel just renders 422 field errors.
+- **Verified in a real browser.** The Chrome extension was not connected, so: logged into the
+  host CP with curl (Inertia login endpoint + CSRF), confirmed the edit page's Inertia payload
+  carries the field and our bundle, then drove headless Google Chrome over the DevTools Protocol
+  from a Node script with the session cookie (`scratchpad/render-panel.mjs`, not committed): the
+  panel rendered with no console errors, the button opened the form, the submit wrote row #3,
+  the panel refreshed with the new line, the toast showed, the entry file stayed untouched.
+- **Two things only the browser found**: (1) the UI kit's `Text` renders inline, so labels ran into
+  values ("OwnerNobody…") until given `as="div"`; (2) **`Statamic.$axios` does not exist in
+  Statamic 6** — the HTTP client is `this.$axios`, a Vue app global property, reachable in
+  `<script setup>` via `getCurrentInstance().appContext.config.globalProperties`; and `toast` is a
+  named export of `@statamic/cms/api`. The first cut's POST never fired and the catch swallowed it
+  into an error toast. Neither is visible from PHP tests; a render check is not optional for CP work.
+- Host side effects, all undone: `make:user` flipped `STATAMIC_PRO_ENABLED` to true (Solo allows one
+  user) — restored; the temp user removed; its two attestations deleted and the state row put back
+  to the real user's last review. Rebuilt assets were `vendor:publish`ed to the host by hand —
+  a site gets that on `composer update`.
+- **Phase 3 is complete.** The paid value exists end to end: attest from the listing or the entry,
+  never touch the entry, keep the record, show it where the editor works.

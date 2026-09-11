@@ -1,7 +1,11 @@
+import { components } from '@statamic/cms/api';
+
+import LifecycleStatusField from './fieldtypes/LifecycleStatusField.vue';
+
 /**
  * The addon's control panel assets.
  *
- * Nothing is registered yet. The publish-form panel, the utility screens and
- * the dashboard widget are later phases; this entry exists so the build and
- * publish pipeline is proven before anything depends on it.
+ * One fieldtype so far: the review panel in the entry sidebar. The utility
+ * screens and the dashboard widget are later phases.
  */
+components.register('lifecycle_status-fieldtype', LifecycleStatusField);

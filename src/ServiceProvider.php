@@ -24,6 +24,14 @@ class ServiceProvider extends AddonServiceProvider
         Actions\MarkReviewed::class,
     ];
 
+    protected $fieldtypes = [
+        Fieldtypes\LifecycleStatus::class,
+    ];
+
+    protected $routes = [
+        'cp' => __DIR__.'/../routes/cp.php',
+    ];
+
     protected $vite = [
         'input' => ['resources/js/cp.js'],
         'publicDirectory' => 'resources/dist',

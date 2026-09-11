@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Bpmore\StatamicLifecycle\Blueprint\LifecycleFields;
+use Bpmore\StatamicLifecycle\Fieldtypes\LifecycleStatus;
 use Statamic\Auth\User as StatamicUser;
 use Statamic\Facades\Blueprint;
 use Statamic\Facades\Collection;
@@ -28,10 +29,12 @@ it('puts the three fields on an entry blueprint without anybody editing it', fun
     $sidebar = $blueprint->tabs()->get('sidebar')->fields()->all()->keys()->all();
 
     expect($sidebar)->toContain('slug')
-        ->and(array_slice($sidebar, -3))->toBe([
+        ->and(array_slice($sidebar, -4))->toBe([
             LifecycleFields::CONTENT_OWNER,
             LifecycleFields::REVIEW_INTERVAL,
             LifecycleFields::REVIEW_BY,
+            // And under them, the panel that says what they add up to.
+            LifecycleStatus::HANDLE,
         ]);
 });
 

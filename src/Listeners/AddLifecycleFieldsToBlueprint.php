@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Bpmore\StatamicLifecycle\Listeners;
 
 use Bpmore\StatamicLifecycle\Blueprint\LifecycleFields;
+use Bpmore\StatamicLifecycle\Fieldtypes\LifecycleStatus;
 use Statamic\Events\EntryBlueprintFound;
 
 /**
@@ -25,5 +26,15 @@ class AddLifecycleFieldsToBlueprint
     public function handle(EntryBlueprintFound $event): void
     {
         $event->blueprint->ensureFieldsInTab(LifecycleFields::definitions(), 'sidebar');
+
+        // And, under the three inputs, the panel that says what they mean:
+        // status, next review, last review, history, and the button. Computed
+        // visibility keeps it out of every save.
+        $event->blueprint->ensureFieldInTab(LifecycleStatus::HANDLE, [
+            'type' => LifecycleStatus::HANDLE,
+            'display' => __('Review'),
+            'visibility' => 'computed',
+            'listable' => false,
+        ], 'sidebar');
     }
 }
