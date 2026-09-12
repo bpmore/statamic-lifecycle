@@ -1,3 +1,5 @@
+ALL TASKS COMPLETE
+
 # PROGRESS — Lifecycle
 
 **Spec:** `lifecycle-build-spec.md` · **Package:** `bpmore/statamic-lifecycle` · **$99**
@@ -53,7 +55,7 @@
 - [x] Antlers tags: `last_reviewed`, `is_stale`, `next_review`
 - [x] Governance report export (reuse the tagged-PDF pipeline)
 - [x] Permissions, with expiry configuration admin-only
-- [ ] README, listing copy, tag 1.0
+- [x] README, listing copy, tag 1.0
 
 ## Notes
 <!-- Record surprises, decisions and blockers here. If a task is wrong or blocked, write why and stop. -->
@@ -965,3 +967,27 @@
   routes exactly.
 - Verified on the host: the group and its four descriptions render on the Permissions screen
   (headless Chrome, temp super user, removed afterwards); the rebuilt widget bundle published.
+
+### 2026-09-12 — README, listing copy, tag 1.0
+- README rewritten for release, in the line's shape: what it does in six bullets, the four-line
+  install, the dry-run warning kept at the top, a documentation table into `DOCUMENTATION.md`,
+  the suite positioning, requirements, licence. `DOCUMENTATION.md` is the single long document
+  the marketplace's docs field takes (as A11y Docs does it): installing and day one, the three
+  fields and the split between entry and tables, attestation, bulk assignment, screens,
+  reminders, expiry with the six rails, the gate, the report, the tags, permissions, Site
+  Weather, multisite, every command and every config key with its default, and what it does not
+  do. `LISTING.md` is the marketplace copy — name, price, one-liner, a 104-character card
+  summary, long description, features, categories, keywords — with the reasoning beside each
+  choice, as the sibling's has.
+- **What the copy does not claim**: exemptions (no feature yet), a bulk set-interval action,
+  groups as owners (schema only), a doctor command, and — above all — that any page is accurate.
+  The licence's accuracy clause is echoed in the README and the listing, because "reviewed on
+  12 March" will be read as "correct on 12 March" by somebody eventually.
+- `CHANGELOG.md` gets its 1.0.0 entry with the two things deliberately left out named. The
+  composer metadata (name, slug, description, keywords) was already right.
+- Tagged `v1.0.0` on the commit that includes this note, the convention the siblings use. Not
+  pushed: pushing is not this run's to do.
+- **Every task in this file is done.** 532 tests, Pint clean, assets built and committed, host
+  verified along the way. Spec §11's open questions stand as decided in the notes above: users
+  only in v1 with `owner_type` in the schema for groups; editing never counts as reviewing; owner
+  and interval per site; orphans swept nightly; the Workflows boundary revisited when core ships.
