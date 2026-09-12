@@ -178,6 +178,28 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | The governance report
+    |--------------------------------------------------------------------------
+    |
+    | `php please lifecycle:report --format=pdf --out=storage/report.pdf`
+    | prints the report through headless Chrome, which produces a genuinely
+    | tagged PDF; an XMP packet is added afterwards so the result passes
+    | PDF/UA validation. A governance report an auditor's screen reader
+    | cannot read is not a report anybody should send anyone.
+    |
+    */
+
+    'report' => [
+
+        // Null to look in the usual places for Chrome, Chromium or Edge.
+        'chrome' => env('LIFECYCLE_CHROME'),
+
+        'timeout' => (int) env('LIFECYCLE_CHROME_TIMEOUT', 120),
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | The gate
     |--------------------------------------------------------------------------
     |

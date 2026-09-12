@@ -51,7 +51,7 @@
 - [x] **Report a Freshness band to Site Weather.** One class implementing `Bpmore\SiteWeather\Contracts\WeatherContributor` (`key()` `freshness`, `label()` `Freshness`, `reading()`), tagged by name as `site-weather.contributors` in the provider's `register()` — Site Weather is a `suggest`, plus `require-dev` (path repository `../statamic-site-weather` until it is on Packagist). `reading()` reads stored results only — the share of tracked entries whose `EntryState` status is overdue or expired — never recomputes; asks whether the addon is set up before it reads; returns `Reading::unknown()` with a next-step headline when not set up or nothing measured; a measured state carries the latest `computed_at`; `url` is the lifecycle utility dashboard from the task above. Thresholds are this product's call. Follow `../statamic-a11y-docs/src/Weather/DocumentsContributor.php` and its test. Then drop the fake `freshness` band from `../statamic-dev/app/Providers/SiteWeatherDemoProvider.php` and confirm the real one on the dev-site tile.
 - [x] Gate: require owner + review date, opt-in and off by default
 - [x] Antlers tags: `last_reviewed`, `is_stale`, `next_review`
-- [ ] Governance report export (reuse the tagged-PDF pipeline)
+- [x] Governance report export (reuse the tagged-PDF pipeline)
 - [ ] Permissions, with expiry configuration admin-only
 - [ ] README, listing copy, tag 1.0
 
@@ -904,3 +904,32 @@
   formatted line, the pair, and the untrusted case. Nothing on the host changed. The host's home
   page names a reviewer/owner ID with no user behind it, so the tag prints the ID — as designed:
   the name when there is one, the fact when there is not.
+
+### 2026-09-12 — Governance report export
+- `lifecycle:report [--format=table|json|csv|html|pdf] [--out=]` (spec §9 said `--format=`; the
+  sibling used `--html=`/`--pdf=`; the spec's shape won, with `--out` for the path). One set of
+  numbers, `Reporting\GovernanceReport::build()`, feeds every format, so they cannot disagree:
+  ownership by source (confirmed = named on the page; inferred and last-resort are not
+  confirmations), review recency over the content under review (exempt content is never
+  reviewed by design, so it is excluded and the report says so), never-reviewed with the
+  since-baselining subset, the three overdue breakdowns from `Overview`, and twelve months of
+  review activity by outcome (twelve small range queries rather than a database-specific
+  `strftime`/`DATE_FORMAT` group-by — the addon runs on SQLite and MySQL alike).
+- **The tagged-PDF pipeline is A11y Docs', carried over rather than re-solved** (spec §0):
+  `Reporting\Pdf\{PdfRenderer, ChromePdfRenderer, PdfUaMetadata}` — accessible HTML printed by
+  headless Chrome (`--print-to-pdf`, no header/footer artifacts), then an XMP packet appended as
+  an incremental update because Chrome writes none and PDF/UA clause 7.1-8 wants one. Each product
+  in the line carries its own copy (A11y Report's is a DevTools variant); a shared package would
+  be the right refactor once a third copy is needed and is out of scope here. `symfony/process`
+  is now an explicit `require`.
+- **The claim is checked**: the suite runs veraPDF (`-f ua1`) on the exported PDF wherever both
+  Chrome and veraPDF are installed — both are on this machine, so the test ran, not skipped —
+  and the host's own export PASSES ua1 too. The template avoids `<strong>` (Chrome maps it to a
+  non-standard structure type with no role map, clause 7.1-5, as A11y Docs found) and uses real
+  captions and header scopes. `percent()` refuses to round 99.6% to "100%".
+- `GovernanceReport` and `HtmlReport` are Statamic-thin (Overview, Site facade for name and
+  language); the PDF classes are framework-free and unit-tested with a stub browser and a
+  hand-written classic-xref PDF.
+- Host: report run in all formats against the live tables; nothing on the host changed. Note
+  the host's `composer update bpmore/statamic-lifecycle` also re-pinned two other path-repo
+  siblings (delegated, lms) in the host lock — symlinks, no effect.

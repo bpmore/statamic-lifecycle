@@ -71,6 +71,7 @@ class ServiceProvider extends AddonServiceProvider
         Commands\AssignOwner::class,
         Commands\NotifyLifecycle::class,
         Commands\ExpireLifecycle::class,
+        Commands\ReportLifecycle::class,
     ];
 
     public function bootAddon(): void
@@ -152,6 +153,11 @@ class ServiceProvider extends AddonServiceProvider
         // is seen by the next run in the same process.
         $this->app->bind(Notifications\QuietWindow::class, fn ($app): Notifications\QuietWindow => Notifications\QuietWindow::fromConfig(
             (array) $app['config']->get('lifecycle.notifications', []),
+        ));
+
+        $this->app->bind(Reporting\Pdf\PdfRenderer::class, fn ($app): Reporting\Pdf\PdfRenderer => new Reporting\Pdf\ChromePdfRenderer(
+            $app['config']->get('lifecycle.report.chrome'),
+            (int) $app['config']->get('lifecycle.report.timeout', 120),
         ));
 
         $this->app->bind(Gate\GateSettings::class, fn ($app): Gate\GateSettings => new Gate\GateSettings(

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Bpmore\StatamicLifecycle\Tests\TestCase;
+use Symfony\Component\Process\Process;
 
 // Everything under Feature gets a booted Statamic. Anything that can be tested
 // without one — the state computation, the staggering algorithm — should live
@@ -70,4 +71,24 @@ function referencedNames(string $file): array
     }
 
     return $names;
+}
+
+/** Whether veraPDF is on this machine, so the PDF/UA validation test can run. */
+function veraPdfInstalled(): bool
+{
+    static $installed = null;
+
+    if ($installed === null) {
+        $process = new Process(['verapdf', '--version']);
+        $process->setTimeout(30);
+
+        try {
+            $process->run();
+            $installed = $process->isSuccessful();
+        } catch (Throwable) {
+            $installed = false;
+        }
+    }
+
+    return $installed;
 }

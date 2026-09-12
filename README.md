@@ -64,6 +64,25 @@ Confirmed means a person named on the page, who still exists: an owner the
 addon inferred from the last author does not count, and neither does the owner
 of last resort.
 
+## The governance report
+
+```
+php please lifecycle:report
+php please lifecycle:report --format=pdf --out=storage/governance-report.pdf
+```
+
+The per-site answer to what an audit, a records request or an accreditation
+review asks: how much content has a confirmed owner, how much a person has
+reviewed in the last twelve months, where the overdue content is by
+collection, site and owner, how much reviewing is happening month by month,
+and what has never been reviewed since baselining. Tables on the console;
+`--format=json`, `csv`, `html` or `pdf` with `--out=`.
+
+The PDF is printed from accessible HTML by headless Chrome and passes PDF/UA-1
+validation — the same pipeline A11y Docs proved. A governance report an
+auditor's screen reader cannot read is not one. No browser installed is not
+an error: you get the HTML.
+
 ## On the front end
 
 A visible "Last reviewed" line is a small thing with outsized value: good for

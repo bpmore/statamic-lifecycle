@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "2d53d62b5ebf172738a4bc8efdc2f94f",
+    "content-hash": "e9ff85b6d8fc30d340b3c5bab31c0461",
     "packages": [
         {
             "name": "ajthinking/archetype",
@@ -9249,7 +9249,7 @@
             "dist": {
                 "type": "path",
                 "url": "../statamic-site-weather",
-                "reference": "ced889b85a643fef20e918ea3d81d51aea458abe"
+                "reference": "0acf481adafd9b7f9a63d72c2ef4bb69a0743d7f"
             },
             "require": {
                 "php": "^8.2",
