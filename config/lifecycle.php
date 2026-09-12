@@ -178,6 +178,36 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Expiry actions
+    |--------------------------------------------------------------------------
+    |
+    | Off by default. Nothing on the live site changes unless a collection
+    | opts in. Every action passes through the rails below first.
+    |
+    | The circuit breaker refuses a whole collection when one run would touch
+    | more than `max_share` of it — the rule that prevents the catastrophe.
+    | Nothing is changed, the refusal is logged, and an admin is emailed:
+    | the addresses in `alert_to`, or every super user when none are named.
+    | `min_affected` lets a small collection through when fewer pages than
+    | that are involved, whatever share they are.
+    |
+    */
+
+    'expiry' => [
+
+        'circuit_breaker' => [
+            'max_share' => '10%',
+            'min_affected' => 0,
+        ],
+
+        'alert_to' => [
+            // 'web@example.edu',
+        ],
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Recompute
     |--------------------------------------------------------------------------
     |

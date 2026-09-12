@@ -125,6 +125,10 @@ class ServiceProvider extends AddonServiceProvider
             (array) $app['config']->get('lifecycle.notifications', []),
         ));
 
+        $this->app->bind(Expiry\CircuitBreaker::class, fn ($app): Expiry\CircuitBreaker => Expiry\CircuitBreaker::fromConfig(
+            (array) $app['config']->get('lifecycle.expiry.circuit_breaker', []),
+        ));
+
         $this->app->singleton(StateRecomputer::class, fn ($app): StateRecomputer => new StateRecomputer(
             $app->make(Storage\StateStore::class),
             $app->make(State\StateComputer::class),

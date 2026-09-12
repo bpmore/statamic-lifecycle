@@ -28,10 +28,16 @@ it('keeps the state computation free of any framework', function (string $file) 
     )));
 
     expect($violations)->toBe([]);
-})->with(phpSources(['src/State']));
+})->with(array_filter(
+    phpSources(['src/State', 'src/Expiry']),
+    // The rails' rules are pure; what they do when tripped (log, mail) is not.
+    fn (string $path): bool => ! str_contains($path, 'TripAlert'),
+    ARRAY_FILTER_USE_KEY,
+));
 
 it('has a state computation to keep pure', function () {
     // Guards the check above: a renamed directory would leave it with no
     // files and nothing to fail on.
-    expect(phpSources(['src/State']))->not->toBeEmpty();
+    expect(phpSources(['src/State']))->not->toBeEmpty()
+        ->and(phpSources(['src/Expiry']))->not->toBeEmpty();
 });

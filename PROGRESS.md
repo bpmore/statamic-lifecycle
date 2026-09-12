@@ -36,7 +36,7 @@
 - [x] Quiet window; per-user frequency opt-out
 
 ## Phase 6 — Expiry actions (build the rails BEFORE the actions)
-- [ ] Percentage circuit breaker (default 10% of a collection)
+- [x] Percentage circuit breaker (default 10% of a collection)
 - [ ] Daily action cap (default 25)
 - [ ] Mandatory notice period
 - [ ] Never-touch list
@@ -597,3 +597,25 @@
   a Lifecycle tab; the quiet window names Saturday and Sunday and lets Monday through.
 - **Phase 5 is complete.** Reminders go out on a schedule, as one digest per person, escalate when
   an owner has had long enough, stay quiet at weekends, and respect each person's say in how often.
+
+### 2026-09-11 — The circuit breaker
+- **Built before any action exists, as the spec insists.** `Expiry\CircuitBreaker::check(candidates,
+  collectionSizes)` is pure: it counts distinct entries per collection across every kind of
+  action but `restore` (a way back is never refused), and when a run would touch more than
+  `max_share` (default 10%) of a collection it refuses the *whole* collection — `Verdict` says
+  what was allowed, what was refused, and a `Trip` per collection with the numbers and a reason in
+  words. Exact at the line (10% allowed, 10% and one page not). A collection the sizes do not
+  mention is treated as entirely the run and refused: fail closed. 12 unit cases.
+- The vocabulary the actions will share is here too: `ActionType` (banner, noindex, unpublish,
+  restore — the schema's set) and `Candidate` (one proposed change to one page).
+- **"Log it, notify an admin"**: `Expiry\TripAlert::raise(trips)` writes each refusal to the log
+  with its numbers and emails `TripAlertMail` — the refused collections and what to do — to the
+  addresses in `expiry.alert_to`, or every super user with an email when none are named. If there
+  is nobody to tell, it says so in the log rather than fall silent: a tripped breaker nobody hears
+  about is a site that quietly stops expiring anything.
+- Config: `expiry.circuit_breaker.max_share` accepts `'10%'`, `10`, or `0.10`; `min_affected`
+  (default 0) lets a small collection through when fewer pages than that are involved, for a
+  site that decides two of ten is not a catastrophe. The spec's rule is the default.
+- The purity test now covers `src/Expiry` too, bar `TripAlert*`, which is the impure half.
+- Verified on the host: 12 of 100 refused, the warning in the log with its numbers, the alert to
+  the super user through the log mailer.
