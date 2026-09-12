@@ -987,7 +987,7 @@ ALL TASKS COMPLETE
   composer metadata (name, slug, description, keywords) was already right.
 - Tagged `v1.0.0` on the commit that includes this note, the convention the siblings use. Not
   pushed: pushing is not this run's to do.
-- **Every task in this file is done.** 532 tests, Pint clean, assets built and committed, host
+- **Every task in this file is done.** 523 tests, Pint clean, assets built and committed, host
   verified along the way. Spec §11's open questions stand as decided in the notes above: users
   only in v1 with `owner_type` in the schema for groups; editing never counts as reviewing; owner
   and interval per site; orphans swept nightly; the Workflows boundary revisited when core ships.
