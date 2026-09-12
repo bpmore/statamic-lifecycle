@@ -26,7 +26,7 @@
 - [x] Assign by structure branch
 - [x] Assign by collection / blueprint / author / taxonomy term
 - [x] CSV import (URL or entry ID → owner)
-- [ ] Bulk action in the CP listing
+- [x] Bulk action in the CP listing
 - [ ] Owner-of-last-resort per site
 
 ## Phase 5 — Notifications
@@ -467,3 +467,20 @@
   site must set the flag; the CSV test does.
 - Verified on the host with a CRLF file, a header with extra columns, a full URL, a draft, and two
   deliberately bad rows.
+
+### 2026-09-11 — Bulk action in the CP listing
+- `Actions\AssignOwner` (handle `assign_owner`): filter the entries listing, select, "Assign owner",
+  pick one person (a `users` field, `max_items: 1`, required). The same `OwnerAssigner` as the
+  command, so the same rules: writes only what changes, does not stamp the runner as last author,
+  recomputes what it touched. Tested through the real CP action endpoint: writes and recomputes;
+  "N already had them" in the message; 422 with no owner; a person who does not exist is refused
+  as the action's failure message without writing; 403 for a user who cannot edit.
+- Unlike Mark reviewed, this one **does** keep Statamic's unsaved-changes warning and says in its
+  confirmation that it writes the entry — because it changes the entry under an open form.
+- Authorization is provisional ("may edit"), as with Mark reviewed, until Phase 7's permissions.
+- Not built here: "set interval", "exempt" and "clear exemption" from spec §8's bulk list. Set
+  interval is the same pattern with a different field and belongs with the Phase 7 surfaces;
+  exempt waits on where exemptions are stored (still undecided — see the state computation notes).
+- Statamic's CP middleware refuses more than one user without Pro, so any CP test with several
+  users sets `statamic.editions.pro`.
+- Verified on the host: offered in bulk next to `publish`/`unpublish`/`mark_reviewed`; ran; idempotent.
