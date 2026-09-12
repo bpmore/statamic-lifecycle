@@ -45,7 +45,7 @@ These were due and have not been confirmed.
 @endforeach
 @endif
 
-You get one of these a day at most, listing everything at once, and nothing when there is nothing.
+You get one of these a day at most, listing everything at once, and nothing when there is nothing. To hear weekly instead, or not by email at all, change *Review reminders* in [your preferences]({{ $preferencesUrl }}) — the dashboard shows these pages whatever you choose.
 
 Thanks,<br>
 {{ $siteName }}

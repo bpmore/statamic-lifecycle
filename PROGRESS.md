@@ -33,7 +33,7 @@
 - [x] Configurable schedule (30 / 7 / 0 / overdue)
 - [x] **Digest by default, one email per recipient** — never one per entry
 - [x] Escalation to fallback owner, then owner-of-last-resort
-- [ ] Quiet window; per-user frequency opt-out
+- [x] Quiet window; per-user frequency opt-out
 
 ## Phase 6 — Expiry actions (build the rails BEFORE the actions)
 - [ ] Percentage circuit breaker (default 10% of a collection)
@@ -577,3 +577,23 @@
 - Verified on the host: the settings screen lists a contact per collection; a page 40 days overdue
   owned by someone who has left is escalated to the owner of last resort, and the missing owner is
   named as unreachable.
+
+### 2026-09-11 — Quiet window and the opt-out
+- **Quiet window**: `Notifications\QuietWindow` from `notifications.quiet_days` (default
+  Saturday and Sunday) and `quiet_dates` (Y-m-d, for holidays). On a quiet day `lifecycle:notify`
+  prints the plan and "Quiet day: it is Saturday", and sends nothing. Nothing is lost: what is
+  owed is decided by the log, not the calendar, so Monday sends what Saturday would have.
+- **The opt-out is a preference on the person, never on the record**: `lifecycle_reminders` —
+  daily (default) / weekly at most / never — registered with `Preference::extend()` as a
+  "Lifecycle" tab on each user's own preferences screen, read with `$user->getPreference()`.
+  *Never* holds the digest and records nothing, so the reminder stays owed and the dashboard is
+  untouched; unmute and it all still arrives. *Weekly* holds unless the person's last digest is
+  seven or more days old, and the one that then goes lists everything owed by then. The command
+  says who was held and why. The email's footer says where to change it.
+- QuietWindow is a plain `bind`, not a singleton — cheap, and read fresh so a config change is seen
+  in the same process. `Preference::tabs()` is built by `Preference::boot()`, which the CP calls
+  when it draws the screen; a test has to call it too.
+- Verified on the host: the preferences screen (HTTP 200 as the real user) carries the field under
+  a Lifecycle tab; the quiet window names Saturday and Sunday and lets Monday through.
+- **Phase 5 is complete.** Reminders go out on a schedule, as one digest per person, escalate when
+  an owner has had long enough, stay quiet at weekends, and respect each person's say in how often.

@@ -63,6 +63,10 @@ class ServiceProvider extends AddonServiceProvider
         // the sites the site has.
         $this->registerSettingsBlueprint(fn (): array => Settings\SettingsBlueprint::contents());
 
+        // Each person's own say in how often they hear, on their preferences
+        // screen.
+        Notifications\ReminderPreferences::register();
+
         // Bound here, after Statamic's own binding: Statamic saves settings by
         // slug and reads them by package name, and ours differ. See the class.
         $this->app->bind(SettingsRepositoryContract::class, Settings\SettingsRepository::class);
@@ -113,6 +117,12 @@ class ServiceProvider extends AddonServiceProvider
         $this->app->singleton(Notifications\Schedule::class, fn ($app): Notifications\Schedule => Notifications\Schedule::fromConfig(
             (array) $app['config']->get('lifecycle.notifications', []),
             (array) $app['config']->get('lifecycle.escalation', []),
+        ));
+
+        // Not a singleton: cheap to build, and read fresh so a config change
+        // is seen by the next run in the same process.
+        $this->app->bind(Notifications\QuietWindow::class, fn ($app): Notifications\QuietWindow => Notifications\QuietWindow::fromConfig(
+            (array) $app['config']->get('lifecycle.notifications', []),
         ));
 
         $this->app->singleton(StateRecomputer::class, fn ($app): StateRecomputer => new StateRecomputer(

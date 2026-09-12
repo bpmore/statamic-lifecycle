@@ -22,6 +22,8 @@ use Throwable;
  */
 final class Notifier
 {
+    public function __construct(private readonly ReminderPreferences $preferences) {}
+
     /**
      * @param  list<Reminder>  $owed
      * @return list<Digest> one per person, with something to say
@@ -86,6 +88,50 @@ final class Notifier
         }
 
         return $digests;
+    }
+
+    /**
+     * Which digests go today and which are held, by each person's own
+     * preference: none for somebody who has muted email, and one a week at
+     * most for somebody who asked for that — a week since their last one,
+     * whatever it listed.
+     *
+     * @param  list<Digest>  $digests
+     * @return array{send: list<Digest>, held: array<string, string>} held is email => why
+     */
+    public function deliverable(array $digests, DateTimeImmutable $today): array
+    {
+        $send = [];
+        $held = [];
+
+        foreach ($digests as $digest) {
+            $frequency = $this->preferences->frequencyFor($digest->recipientId);
+
+            if ($frequency === Frequency::Never) {
+                $held[$digest->email] = 'has muted review reminders';
+
+                continue;
+            }
+
+            if ($frequency === Frequency::Weekly) {
+                $last = Notification::query()->where('recipient', $digest->recipientId)->max('sent_at');
+
+                if ($last !== null) {
+                    $last = new DateTimeImmutable((string) $last);
+                    $days = (int) $last->setTime(0, 0)->diff($today->setTime(0, 0))->days;
+
+                    if ($days < 7) {
+                        $held[$digest->email] = 'gets a weekly digest, and had one '.($days === 0 ? 'today' : ($days === 1 ? 'yesterday' : $days.' days ago'));
+
+                        continue;
+                    }
+                }
+            }
+
+            $send[] = $digest;
+        }
+
+        return ['send' => $send, 'held' => $held];
     }
 
     /**

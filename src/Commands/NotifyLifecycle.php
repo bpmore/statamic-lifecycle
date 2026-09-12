@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Bpmore\StatamicLifecycle\Commands;
 
 use Bpmore\StatamicLifecycle\Notifications\Notifier;
+use Bpmore\StatamicLifecycle\Notifications\QuietWindow;
 use Bpmore\StatamicLifecycle\Notifications\Reminder;
 use Bpmore\StatamicLifecycle\Notifications\Reminders;
 use Bpmore\StatamicLifecycle\Notifications\ReminderType;
@@ -29,7 +30,7 @@ class NotifyLifecycle extends Command
 
     protected $description = 'Send the day\'s review reminders, one digest per person';
 
-    public function handle(LifecycleDatabase $database, Reminders $reminders, Schedule $schedule, Notifier $notifier): int
+    public function handle(LifecycleDatabase $database, Reminders $reminders, Schedule $schedule, Notifier $notifier, QuietWindow $quiet): int
     {
         if (! $database->isInstalled()) {
             $this->components->error('Lifecycle is not installed on ['.LifecycleDatabase::connectionName().']. Run `php please lifecycle:install` first.');
@@ -57,6 +58,19 @@ class NotifyLifecycle extends Command
             $this->components->warn("[{$recipient}] cannot be reminded: {$reason}.");
         }
 
+        if ($reason = $quiet->reason($today)) {
+            $this->newLine();
+            $this->components->info("Quiet day: {$reason}. Nothing is sent on a quiet day; what is owed waits for the next day that is not.");
+
+            return self::SUCCESS;
+        }
+
+        $digests = $owed === [] ? [] : $notifier->deliverable($notifier->digests($owed), $today);
+
+        foreach ($digests['held'] ?? [] as $email => $why) {
+            $this->components->twoColumnDetail("  {$email}", "held: {$why}");
+        }
+
         if ($this->option('dry-run')) {
             $this->newLine();
             $this->components->warn('Dry run: nothing was sent.');
@@ -64,12 +78,11 @@ class NotifyLifecycle extends Command
             return self::SUCCESS;
         }
 
-        if ($owed === []) {
+        if ($owed === [] || $digests['send'] === []) {
             return self::SUCCESS;
         }
 
-        $digests = $notifier->digests($owed);
-        $result = $notifier->send($digests, $today);
+        $result = $notifier->send($digests['send'], $today);
 
         $this->newLine();
         $this->components->info(sprintf(

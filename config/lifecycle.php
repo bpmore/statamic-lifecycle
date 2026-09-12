@@ -137,6 +137,14 @@ return [
         // hour people read email.
         'send_at' => env('LIFECYCLE_SEND_AT', '07:00'),
 
+        // Days nothing is sent. What is owed waits for the next day that is
+        // not quiet; nothing is lost. Add dates as Y-m-d for holidays.
+        'quiet_days' => ['saturday', 'sunday'],
+
+        'quiet_dates' => [
+            // '2026-12-25',
+        ],
+
     ],
 
     /*

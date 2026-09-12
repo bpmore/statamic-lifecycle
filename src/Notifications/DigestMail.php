@@ -33,6 +33,7 @@ class DigestMail extends Mailable
                 'dueToday' => $this->digest->of(ReminderType::Due),
                 'dueSoon' => $this->digest->of(ReminderType::DueSoon),
                 'siteName' => config('app.name'),
+                'preferencesUrl' => cp_route('preferences.user.edit'),
             ],
         );
     }
