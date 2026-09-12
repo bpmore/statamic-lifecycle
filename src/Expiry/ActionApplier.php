@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Bpmore\StatamicLifecycle\Expiry;
 
+use Bpmore\StatamicLifecycle\Gate\PublishGate;
 use InvalidArgumentException;
 use Statamic\Contracts\Entries\Entry;
 
@@ -71,7 +72,7 @@ final class ActionApplier
     {
         $previous = [$field => $entry->get($field)];
 
-        $entry->set($field, true)->save();
+        PublishGate::suspended(fn () => $entry->set($field, true)->save());
 
         return $previous;
     }
@@ -79,7 +80,7 @@ final class ActionApplier
     /** @return array<string, mixed> */
     private function unpublish(Entry $entry): array
     {
-        $entry->unpublish(['message' => __('Unpublished by Lifecycle: overdue for review')]);
+        PublishGate::suspended(fn () => $entry->unpublish(['message' => __('Unpublished by Lifecycle: overdue for review')]));
 
         return ['published' => true];
     }

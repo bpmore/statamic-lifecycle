@@ -35,6 +35,35 @@ It prints exactly what a real run would do — what would happen now, who would
 be notified, what is waiting, what was kept out and why — and changes nothing.
 If it surprises you, the config is wrong, not the content.
 
+## The gate: off until a collection asks
+
+A collection can require a confirmed owner and a review date before an entry
+publishes. Off on install; nothing changes about what you can publish today.
+
+```php
+'gate' => [
+    'collections' => [
+        'policies' => '2026-10-01',   // entries created on or after this date
+        'news' => 'all',              // every entry, the backlog included
+    ],
+],
+```
+
+The date is the day the gate went on. Entries created before it are never
+gated — the backlog is spread by `lifecycle:baseline`, not blocked — and
+`'all'` is how a site says it means the backlog too. Drafts are never gated.
+
+A refused save says what is missing, under the field where it is set:
+
+> Choose a content owner before publishing. Every entry in Policies needs one.
+>
+> Set a review-by date or a review interval before publishing. Every entry in
+> Policies needs one.
+
+Confirmed means a person named on the page, who still exists: an owner the
+addon inferred from the last author does not count, and neither does the owner
+of last resort.
+
 ## Development
 
 The addon is developed on its own and linked into a host site through a Composer

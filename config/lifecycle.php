@@ -178,6 +178,37 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | The gate
+    |--------------------------------------------------------------------------
+    |
+    | Off by default. A collection named here requires a confirmed owner
+    | (content_owner set on the entry) and a review date (a review-by date
+    | or a review interval) before an entry publishes. Drafts are never
+    | gated. The save is refused with a message under each missing field.
+    |
+    | The value says from when. A date gates entries created on or after
+    | it — the day the gate went on, so nothing already published is
+    | touched. 'all' gates every entry, the ones already there included;
+    | say it only when you mean it. A bare `true` names no day and is
+    | refused: the collection stays ungated and the log says why.
+    |
+    | Entries this addon did not see being created (before it was
+    | installed, or saved without events) are treated as older than any
+    | date, never newer.
+    |
+    */
+
+    'gate' => [
+
+        'collections' => [
+            // 'policies' => '2026-10-01',
+            // 'news' => 'all',
+        ],
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Expiry actions
     |--------------------------------------------------------------------------
     |

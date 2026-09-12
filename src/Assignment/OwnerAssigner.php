@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Bpmore\StatamicLifecycle\Assignment;
 
 use Bpmore\StatamicLifecycle\Blueprint\LifecycleFields;
+use Bpmore\StatamicLifecycle\Gate\PublishGate;
 use Bpmore\StatamicLifecycle\StateRecomputer;
 use DateTimeImmutable;
 use Statamic\Contracts\Entries\Entry;
@@ -41,7 +42,7 @@ final class OwnerAssigner
             }
 
             if (! $dryRun) {
-                $entry->set(LifecycleFields::CONTENT_OWNER, $ownerId)->save();
+                PublishGate::suspended(fn () => $entry->set(LifecycleFields::CONTENT_OWNER, $ownerId)->save());
             }
 
             $assigned[] = (string) $entry->id();

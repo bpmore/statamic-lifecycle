@@ -49,7 +49,7 @@
 - [x] Utility dashboards by collection / site / owner; "My content" view
 - [x] Dashboard widget
 - [x] **Report a Freshness band to Site Weather.** One class implementing `Bpmore\SiteWeather\Contracts\WeatherContributor` (`key()` `freshness`, `label()` `Freshness`, `reading()`), tagged by name as `site-weather.contributors` in the provider's `register()` — Site Weather is a `suggest`, plus `require-dev` (path repository `../statamic-site-weather` until it is on Packagist). `reading()` reads stored results only — the share of tracked entries whose `EntryState` status is overdue or expired — never recomputes; asks whether the addon is set up before it reads; returns `Reading::unknown()` with a next-step headline when not set up or nothing measured; a measured state carries the latest `computed_at`; `url` is the lifecycle utility dashboard from the task above. Thresholds are this product's call. Follow `../statamic-a11y-docs/src/Weather/DocumentsContributor.php` and its test. Then drop the fake `freshness` band from `../statamic-dev/app/Providers/SiteWeatherDemoProvider.php` and confirm the real one on the dev-site tile.
-- [ ] Gate: require owner + review date, opt-in and off by default
+- [x] Gate: require owner + review date, opt-in and off by default
 - [ ] Antlers tags: `last_reviewed`, `is_stale`, `next_review`
 - [ ] Governance report export (reuse the tagged-PDF pipeline)
 - [ ] Permissions, with expiry configuration admin-only
@@ -845,3 +845,39 @@
   temp-user + curl + headless Chrome pattern: DOM text and the Freshness link confirmed, no
   console errors (a Licensing Alert modal covers the screenshot on a fresh session). Temp user
   removed; the host's `STATAMIC_PRO_ENABLED=true` was set by someone else and left alone.
+
+### 2026-09-12 — The gate
+- `Gate\PublishGate` decides, `Listeners\RefuseUnlessOwnedAndDated` throws — a
+  `ValidationException` at 422 from `EntrySaving`, for the reason A11y Gate found: `false` stops
+  the save and says nothing, and the CP turns that into "Couldn't publish entry". Each message is
+  keyed to the field where the missing thing gets set (`content_owner`, `review_by`), so the
+  publish form draws it under that input in the sidebar; verified in headless Chrome on the host
+  (Save & Publish → 422 → red line under Review by; the toast is Statamic's generic "The given
+  data was invalid.", as the sibling documented — the field line is what the author reads).
+- **Confirmed owner** = `content_owner` set to a person who still exists. Inferred and
+  owner-of-last-resort don't count (they are a guess and a safety net); a named owner who has
+  left gets its own line ("no longer a user. Choose another"). The host's home page had exactly
+  that — an owner ID with no user behind it — which is why the rule exists. **Review date** =
+  `review_by` or `review_interval`: both are the author saying when.
+- **"Created before the gate was enabled" needed a fact Statamic does not record.** Entries have
+  no creation time — `date()` is editorial, `lastModified()` moves on every save, and
+  `lifecycle_states` holds only published entries (a draft started after the gate is exactly what
+  the gate is for). So the addon writes the moment down itself: `lifecycle_creations`
+  (migration 000900), one row per entry from `EntryCreated`, removed on delete. A save that
+  creates the entry is "now"; an entry with no record is treated as older than any gate.
+- Config is `gate.collections`, value = the date the gate started (`'2026-10-01'`) or `'all'`
+  for the backlog too. A bare `true` names no day, so the promise can't be kept: refused,
+  collection stays ungated, one warning in the log per process. Not `true` = 'all', because
+  gating the backlog by accident is the uninstall scenario the spec warns about.
+- **The addon's own writes stand outside the gate** (`PublishGate::suspended()`): assigning an
+  owner, setting a banner/noindex flag, unpublishing, reverting. Without it, `'all'` plus a
+  backlog without review dates would make bulk-assign refuse the very write that fixes the
+  backlog — the gate arguing with its own product. Nothing else bypasses it; an import script
+  that saves entries with events on is refused like a person, on purpose.
+- Test gotcha: a refused `Entry::find(id)->published(true)->save()` leaves the in-memory entry
+  mutated (the Stache hands back the same object), so "not saved" is asserted through a
+  `Stache::clear()` re-read, not through `Entry::find`. Also, Laravel has a global `policy()`
+  helper, so a Pest helper can't be called that.
+- Host side effects undone: the temporary `config/lifecycle.php` (gate on `pages`) deleted,
+  temp user removed, config cache cleared. Migration 000900 stays applied. Someone else has
+  added `dev-head`/`dev-staff`/`dev-super` users to the host meanwhile — left alone.

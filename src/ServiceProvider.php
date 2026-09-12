@@ -9,7 +9,9 @@ use Illuminate\Support\Facades\Route;
 use Statamic\Contracts\Addons\SettingsRepository as SettingsRepositoryContract;
 use Statamic\Events\AddonSettingsSaved;
 use Statamic\Events\EntryBlueprintFound;
+use Statamic\Events\EntryCreated;
 use Statamic\Events\EntryDeleted;
+use Statamic\Events\EntrySaving;
 use Statamic\Facades\CP\Nav;
 use Statamic\Providers\AddonServiceProvider;
 
@@ -21,6 +23,13 @@ class ServiceProvider extends AddonServiceProvider
         ],
         EntryDeleted::class => [
             Listeners\RemoveStateOnEntryDeleted::class,
+        ],
+        // The gate, and the creation record it relies on.
+        EntrySaving::class => [
+            Listeners\RefuseUnlessOwnedAndDated::class,
+        ],
+        EntryCreated::class => [
+            Listeners\RecordEntryCreated::class,
         ],
     ];
 
@@ -139,6 +148,10 @@ class ServiceProvider extends AddonServiceProvider
         // is seen by the next run in the same process.
         $this->app->bind(Notifications\QuietWindow::class, fn ($app): Notifications\QuietWindow => Notifications\QuietWindow::fromConfig(
             (array) $app['config']->get('lifecycle.notifications', []),
+        ));
+
+        $this->app->bind(Gate\GateSettings::class, fn ($app): Gate\GateSettings => new Gate\GateSettings(
+            (array) $app['config']->get('lifecycle.gate.collections', []),
         ));
 
         $this->app->bind(Expiry\CircuitBreaker::class, fn ($app): Expiry\CircuitBreaker => Expiry\CircuitBreaker::fromConfig(

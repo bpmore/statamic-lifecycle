@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Bpmore\StatamicLifecycle\Listeners;
 
+use Bpmore\StatamicLifecycle\Storage\Creations;
 use Bpmore\StatamicLifecycle\Storage\LifecycleDatabase;
 use Bpmore\StatamicLifecycle\Storage\StateStore;
 use Statamic\Events\EntryDeleted;
@@ -21,6 +22,7 @@ class RemoveStateOnEntryDeleted
     public function __construct(
         private readonly LifecycleDatabase $database,
         private readonly StateStore $store,
+        private readonly Creations $creations,
     ) {}
 
     public function handle(EntryDeleted $event): void
@@ -33,6 +35,7 @@ class RemoveStateOnEntryDeleted
             }
 
             $this->store->remove([(string) $event->entry->id()]);
+            $this->creations->remove([(string) $event->entry->id()]);
         } catch (Throwable $e) {
             report($e);
         }

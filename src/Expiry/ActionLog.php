@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Bpmore\StatamicLifecycle\Expiry;
 
+use Bpmore\StatamicLifecycle\Gate\PublishGate;
 use Bpmore\StatamicLifecycle\Models\AutomatedAction;
 use DateTimeImmutable;
 use Illuminate\Support\Carbon;
@@ -128,12 +129,13 @@ final class ActionLog
 
         // Publishing and unpublishing go through Statamic's own path, which
         // knows about revisions; a data change is saved as the addon's own.
+        // The addon's own write, so the gate stands aside (PublishGate).
         if (array_key_exists('published', $state)) {
             $options = ['user' => $user, 'message' => __('Put back by Lifecycle')];
 
-            $state['published'] ? $entry->publish($options) : $entry->unpublish($options);
+            PublishGate::suspended(fn () => $state['published'] ? $entry->publish($options) : $entry->unpublish($options));
         } elseif ($touchedData) {
-            $entry->save();
+            PublishGate::suspended(fn () => $entry->save());
         }
 
         return $replaced;
