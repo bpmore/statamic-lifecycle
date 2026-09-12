@@ -30,8 +30,9 @@ it('keeps the state computation free of any framework', function (string $file) 
     expect($violations)->toBe([]);
 })->with(array_filter(
     phpSources(['src/State', 'src/Expiry']),
-    // The rails' rules are pure; what they do when tripped (log, mail) is not.
-    fn (string $path): bool => ! str_contains($path, 'TripAlert'),
+    // The rails' rules are pure; what they read and do around them (the log,
+    // the mail, the day's count) is not.
+    fn (string $path): bool => ! str_contains($path, 'TripAlert') && ! str_contains($path, 'ActionsToday'),
     ARRAY_FILTER_USE_KEY,
 ));
 

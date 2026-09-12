@@ -37,7 +37,7 @@
 
 ## Phase 6 — Expiry actions (build the rails BEFORE the actions)
 - [x] Percentage circuit breaker (default 10% of a collection)
-- [ ] Daily action cap (default 25)
+- [x] Daily action cap (default 25)
 - [ ] Mandatory notice period
 - [ ] Never-touch list
 - [ ] Navigation-reference check before unpublish
@@ -619,3 +619,17 @@
 - The purity test now covers `src/Expiry` too, bar `TripAlert*`, which is the impure half.
 - Verified on the host: 12 of 100 refused, the warning in the log with its numbers, the alert to
   the super user through the log mailer.
+
+### 2026-09-11 — The daily cap
+- **Rail 2, pure**: `Expiry\DailyCap::check(candidates, usedToday)` lets the first candidates through
+  in the run's own order until the day's `expiry.daily_cap` (25) is spent, and *defers* the rest —
+  deferred, not refused: a page the cap holds back is still due its action and gets it on a later
+  day; only the pace is limited. Restores are never counted or held. A cap of 0 stops everything
+  but a way back. `CapVerdict::reason()` says what was put off and why, in words.
+- The breaker guards a run that is too big for one collection; the cap guards a day that is too
+  big for the site. Together a backlog of a thousand expired pages becomes a month of small,
+  watchable steps rather than an afternoon nobody can undo.
+- `Models\AutomatedAction` (`lifecycle_actions`, casts incl. `previous_state` as array) arrives
+  with `appliedOn(day)` and `counted()` scopes; `Expiry\ActionsToday` reads how much of the day is
+  spent from the log, in the app's timezone, restores excluded. The purity check skips it.
+- Verified on the host: 25 a day, none used, 30 wanted → 25 allowed and 5 put off.

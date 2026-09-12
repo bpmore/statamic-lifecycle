@@ -191,6 +191,9 @@ return [
     | `min_affected` lets a small collection through when fewer pages than
     | that are involved, whatever share they are.
     |
+    | The daily cap is the most automated actions in a day, site-wide, every
+    | kind but a restore. What it holds back is done on a later day.
+    |
     */
 
     'expiry' => [
@@ -199,6 +202,8 @@ return [
             'max_share' => '10%',
             'min_affected' => 0,
         ],
+
+        'daily_cap' => 25,
 
         'alert_to' => [
             // 'web@example.edu',

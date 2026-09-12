@@ -129,6 +129,10 @@ class ServiceProvider extends AddonServiceProvider
             (array) $app['config']->get('lifecycle.expiry.circuit_breaker', []),
         ));
 
+        $this->app->bind(Expiry\DailyCap::class, fn ($app): Expiry\DailyCap => Expiry\DailyCap::fromConfig(
+            (array) $app['config']->get('lifecycle.expiry', []),
+        ));
+
         $this->app->singleton(StateRecomputer::class, fn ($app): StateRecomputer => new StateRecomputer(
             $app->make(Storage\StateStore::class),
             $app->make(State\StateComputer::class),
