@@ -46,7 +46,7 @@
 - [x] Only then: banner variable, noindex, unpublish — all off by default, opt-in per collection
 
 ## Phase 7 — Surfaces + ship
-- [ ] Utility dashboards by collection / site / owner; "My content" view
+- [x] Utility dashboards by collection / site / owner; "My content" view
 - [ ] Dashboard widget
 - [ ] **Report a Freshness band to Site Weather.** One class implementing `Bpmore\SiteWeather\Contracts\WeatherContributor` (`key()` `freshness`, `label()` `Freshness`, `reading()`), tagged by name as `site-weather.contributors` in the provider's `register()` — Site Weather is a `suggest`, plus `require-dev` (path repository `../statamic-site-weather` until it is on Packagist). `reading()` reads stored results only — the share of tracked entries whose `EntryState` status is overdue or expired — never recomputes; asks whether the addon is set up before it reads; returns `Reading::unknown()` with a next-step headline when not set up or nothing measured; a measured state carries the latest `computed_at`; `url` is the lifecycle utility dashboard from the task above. Thresholds are this product's call. Follow `../statamic-a11y-docs/src/Weather/DocumentsContributor.php` and its test. Then drop the fake `freshness` band from `../statamic-dev/app/Providers/SiteWeatherDemoProvider.php` and confirm the real one on the dev-site tile.
 - [ ] Gate: require owner + review date, opt-in and off by default
@@ -762,3 +762,24 @@
   of ours cared, but a hand-typed path did.
 - **Phase 6 is complete.** Nothing on the live site changes unless a collection opts in; when it
   does, every change is announced, capped, bounded, logged, and one click from undone.
+
+### 2026-09-12 — The utility screens
+- **Three screens, one nav item** (Tools → Lifecycle, with *My content* beneath): the overview
+  (`lifecycle.dashboard`) — a headline, the status counts and the three attention filters (never
+  reviewed / no owner / owner is a guess) each a way into the list, and tables by collection, by
+  site (shown only with more than one) and by owner, most overdue owner first and *Nobody* last;
+  the list (`lifecycle.entries`) — most overdue first, filtered by state, attention, collection,
+  site and owner from the query string, each page with its owner and how sure, its state and date,
+  its last review in words, and a link into the editor; and *My content* (`lifecycle.mine`) — the
+  same list pinned to the person looking, whatever the query string says. Empty states say what
+  to run; an uninstalled addon says so rather than failing.
+- `Reporting\Overview` and `Reporting\EntryListing` read `lifecycle_states` in grouped queries and
+  one paginated query (50 a page, titles resolved per row), never by walking entries. The listing
+  keeps a page whose entry is gone (named by ID, no link) rather than dropping it: the sweep
+  removes it tonight, and until then hiding it would be lying about the count.
+- The nav registration is tested against a real `Nav` (the harness mocks `Nav::build()`), with
+  the route-exists guard the sibling learned the hard way.
+- **Not gated yet**: the screens need a signed-in CP user and nothing more. Phase 7's permissions
+  task adds `view lifecycle`.
+- Verified in headless Chrome against the host: all three screens render with no console errors,
+  the nav shows both items, the list filters from the URL. Host side effects undone.

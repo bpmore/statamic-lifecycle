@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Bpmore\StatamicLifecycle;
 
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Facades\Route;
 use Statamic\Contracts\Addons\SettingsRepository as SettingsRepositoryContract;
 use Statamic\Events\AddonSettingsSaved;
 use Statamic\Events\EntryBlueprintFound;
 use Statamic\Events\EntryDeleted;
+use Statamic\Facades\CP\Nav;
 use Statamic\Providers\AddonServiceProvider;
 
 class ServiceProvider extends AddonServiceProvider
@@ -68,6 +70,8 @@ class ServiceProvider extends AddonServiceProvider
         // Each person's own say in how often they hear, on their preferences
         // screen.
         Notifications\ReminderPreferences::register();
+
+        $this->bootNavigation();
 
         // Bound here, after Statamic's own binding: Statamic saves settings by
         // slug and reads them by package name, and ours differ. See the class.
@@ -162,6 +166,30 @@ class ServiceProvider extends AddonServiceProvider
             max(1, (int) $app['config']->get('lifecycle.recompute.chunk_size', 250)),
             $app['config']->get('lifecycle.recompute.queue') ?: null,
         ));
+    }
+
+    /**
+     * One item under Tools, with "My content" beneath it — the screen an
+     * owner actually lives in.
+     */
+    private function bootNavigation(): void
+    {
+        Nav::extend(function ($nav): void {
+            // A route cache built before this addon was installed does not
+            // contain its CP routes, and Nav::extend runs on every control
+            // panel request including login. Without this guard a stale cache
+            // takes the whole control panel down with "Route not defined".
+            if (! Route::has('statamic.cp.lifecycle.dashboard')) {
+                return;
+            }
+
+            $nav->tools(__('Lifecycle'))
+                ->route('lifecycle.dashboard')
+                ->icon('history')
+                ->children(fn (): array => [
+                    Nav::item(__('My content'))->route('lifecycle.mine'),
+                ]);
+        });
     }
 
     /**
