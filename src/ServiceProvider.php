@@ -137,6 +137,10 @@ class ServiceProvider extends AddonServiceProvider
             (array) $app['config']->get('lifecycle.expiry', []),
         ));
 
+        $this->app->bind(Expiry\NeverTouch::class, fn ($app): Expiry\NeverTouch => Expiry\NeverTouch::fromConfig(
+            (array) $app['config']->get('lifecycle.expiry.never_touch', []),
+        ));
+
         $this->app->singleton(StateRecomputer::class, fn ($app): StateRecomputer => new StateRecomputer(
             $app->make(Storage\StateStore::class),
             $app->make(State\StateComputer::class),

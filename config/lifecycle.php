@@ -198,6 +198,10 @@ return [
     | happens — in their digest, naming the action and the date. Never the
     | same run, whatever the number: 0 still means the next day.
     |
+    | The never-touch list names pages nothing automated may change, by
+    | collection handle, by URL pattern (`*` stands for anything: `/legal/*`),
+    | or by entry ID. The home page and the legal pages belong here.
+    |
     */
 
     'expiry' => [
@@ -210,6 +214,14 @@ return [
         'daily_cap' => 25,
 
         'notice_days' => 7,
+
+        'never_touch' => [
+            'collections' => [],
+            'urls' => [
+                '/',
+            ],
+            'entries' => [],
+        ],
 
         'alert_to' => [
             // 'web@example.edu',

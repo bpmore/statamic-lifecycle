@@ -39,7 +39,7 @@
 - [x] Percentage circuit breaker (default 10% of a collection)
 - [x] Daily action cap (default 25)
 - [x] Mandatory notice period
-- [ ] Never-touch list
+- [x] Never-touch list
 - [ ] Navigation-reference check before unpublish
 - [ ] Action log with `previous_state` + one-click revert
 - [ ] `lifecycle:expire --dry-run` (documented as the first step)
@@ -655,3 +655,15 @@
 - The expire command (task 7) will feed `toNotify` into the Notifier and act only on `allowed`.
 - Verified on the host: the migration applied; a notice went through the real digest with the
   right sentence; the verdict is *waiting until the 19th* today and in six days, *allowed* in seven.
+
+### 2026-09-11 — The never-touch list
+- **Rail 4, pure**: `Expiry\NeverTouch::check(candidates, uris)` keeps out pages named by entry ID,
+  by collection handle, or by URL pattern — `*` stands for anything, any length, slashes included,
+  so `/legal/*` keeps `/legal/privacy` and `/legal/terms/2024`; matching ignores case and a
+  trailing slash; `/` on its own is the home page and nothing else. Each `Refusal` names the rule
+  that applied, so the person reading a dry run can find it in the config. Restores pass. The
+  command supplies site-relative URIs; a page with none is judged on the other two rules.
+- **The home page is on the list by default** (`expiry.never_touch.urls => ['/']`): the one page no
+  site wants unpublished by a scheduler. A site that means it can remove it.
+- Verified on the host: the home page is kept out by the default pattern; listing the `pages`
+  collection keeps it out by that rule instead, and the reason says which.
