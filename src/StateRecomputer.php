@@ -7,6 +7,7 @@ namespace Bpmore\StatamicLifecycle;
 use Bpmore\StatamicLifecycle\Entries\EntryFactsReader;
 use Bpmore\StatamicLifecycle\Jobs\PruneStates;
 use Bpmore\StatamicLifecycle\Jobs\RecomputeStates;
+use Bpmore\StatamicLifecycle\Reporting\Snapshots;
 use Bpmore\StatamicLifecycle\State\StateComputer;
 use Bpmore\StatamicLifecycle\Storage\StateStore;
 use DateTimeImmutable;
@@ -119,7 +120,14 @@ final class StateRecomputer
     /** @return int rows removed */
     public function prune(?string $site = null, ?string $collection = null): int
     {
-        return $this->store->remove($this->orphans($site, $collection));
+        $removed = $this->store->remove($this->orphans($site, $collection));
+
+        // The sweep is the last thing a run does, so the day's numbers are
+        // taken here, once everything is up to date. A scoped run records
+        // them too: the numbers are the whole site's whatever the scope.
+        app(Snapshots::class)->record(new DateTimeImmutable);
+
+        return $removed;
     }
 
     /**

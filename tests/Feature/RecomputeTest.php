@@ -305,8 +305,13 @@ describe('orphans', function () {
         DB::connection()->enableQueryLog();
 
         expect(app(StateRecomputer::class)->prune())->toBe(1_200)
-            ->and(EntryState::query()->count())->toBe(0)
-            ->and(count(DB::connection()->getQueryLog()))->toBeLessThanOrEqual(8);
+            ->and(EntryState::query()->count())->toBe(0);
+
+        // The walk is keyset-paginated selects of IDs; the removal is chunked
+        // deletes. (The day's snapshot, taken at the end, has its own queries.)
+        $log = collect(DB::connection()->getQueryLog())->pluck('query')->map(fn ($q) => strtolower($q));
+        expect($log->filter(fn ($q) => str_starts_with($q, 'delete from "lifecycle_states"'))->count())->toBe(3)
+            ->and($log->filter(fn ($q) => str_starts_with($q, 'select "entry_id" from "lifecycle_states"'))->count())->toBeLessThanOrEqual(4);
     });
 
     it('is a job of its own, last in the batch', function () {

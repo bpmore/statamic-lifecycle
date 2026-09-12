@@ -47,7 +47,7 @@
 
 ## Phase 7 — Surfaces + ship
 - [x] Utility dashboards by collection / site / owner; "My content" view
-- [ ] Dashboard widget
+- [x] Dashboard widget
 - [ ] **Report a Freshness band to Site Weather.** One class implementing `Bpmore\SiteWeather\Contracts\WeatherContributor` (`key()` `freshness`, `label()` `Freshness`, `reading()`), tagged by name as `site-weather.contributors` in the provider's `register()` — Site Weather is a `suggest`, plus `require-dev` (path repository `../statamic-site-weather` until it is on Packagist). `reading()` reads stored results only — the share of tracked entries whose `EntryState` status is overdue or expired — never recomputes; asks whether the addon is set up before it reads; returns `Reading::unknown()` with a next-step headline when not set up or nothing measured; a measured state carries the latest `computed_at`; `url` is the lifecycle utility dashboard from the task above. Thresholds are this product's call. Follow `../statamic-a11y-docs/src/Weather/DocumentsContributor.php` and its test. Then drop the fake `freshness` band from `../statamic-dev/app/Providers/SiteWeatherDemoProvider.php` and confirm the real one on the dev-site tile.
 - [ ] Gate: require owner + review date, opt-in and off by default
 - [ ] Antlers tags: `last_reviewed`, `is_stale`, `next_review`
@@ -783,3 +783,37 @@
   task adds `view lifecycle`.
 - Verified in headless Chrome against the host: all three screens render with no console errors,
   the nav shows both items, the list filters from the URL. Host side effects undone.
+
+### 2026-09-12 — Dashboard widget
+- `Widgets\Lifecycle`, registered through the provider's `$widgets` and enabled by the site with
+  `['type' => 'lifecycle', 'width' => 50]` in `config/statamic/cp.php` — Statamic 6 widgets are
+  a `VueComponent::render()` of a component the addon registers in `cp.js` (`lifecycle-widget`),
+  not a Blade view. Three numbers, each a way in: **Yours** (overdue + expired owned by the
+  current user, with a due-soon badge) → My content; **Whole site** → the listing filtered to
+  overdue; the title → the dashboard.
+- **The trend needs history the state table doesn't keep**, so a fifth table:
+  `lifecycle_snapshots`, one row per day (`day` is the key), holding the day's status counts,
+  the attention counts and that day's review count. `Reporting\Snapshots::record()` upserts it
+  at the end of `StateRecomputer::prune()` — the end of every recompute, sync or batched — so the
+  nightly run leaves a mark and a second run the same day overwrites rather than duplicates.
+  `last(30)` reads the window back, oldest first. Migration 000800; `lifecycle:install` applies it.
+- The sparkline is an inline SVG polyline drawn in the component — no chart library rides
+  along for 48 pixels. Points sit where their day falls in the window, so a night the recompute
+  skipped shows as a gap rather than a straight line pretending it ran.
+- **"30 days ago" is only true once there are 30 snapshots**, and today's own snapshot is not a
+  trend: the change is measured against the oldest *earlier* day in the window and the copy
+  says how many days that actually was ("↓ 3 fewer overdue than 23 days ago"); with only today
+  recorded it says the trend appears after a few nightly recomputes. The first cut said
+  "No change over 30 days" on day one, which the render caught.
+- There is no `Statamic\Facades\Widget`; widgets register as `handle => class` in
+  `app('statamic.widgets')` and `Statamic\Widgets\Loader::load()` instantiates them, which is what
+  the registration test asserts.
+- The chunked-prune test counted every query and broke when the snapshot added its own at the
+  end of `prune()`; it now counts the deletes (3) and keyset selects (≤4) by statement.
+- Verified in the user's own Chrome (signed in as the host's super user, so no temp user and no
+  Pro flag to restore): widget renders beside Site Weather and the sibling Readability widget,
+  sparkline and change line correct against three seeded older snapshots, all three links resolve,
+  no console errors. Host side effects undone: seeded rows deleted, my `cp.php` line removed
+  (another session added a `readability` widget to the same file meanwhile — left as found);
+  the host's `STATAMIC_PRO_ENABLED=true` was already set by someone else and was not touched.
+  Migration 000800 stays applied on the host, as any site gets on `lifecycle:install`.

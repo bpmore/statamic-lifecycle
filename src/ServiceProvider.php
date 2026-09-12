@@ -34,6 +34,10 @@ class ServiceProvider extends AddonServiceProvider
         Fieldtypes\LifecycleStatus::class,
     ];
 
+    protected $widgets = [
+        Widgets\Lifecycle::class,
+    ];
+
     protected $routes = [
         'cp' => __DIR__.'/../routes/cp.php',
     ];
