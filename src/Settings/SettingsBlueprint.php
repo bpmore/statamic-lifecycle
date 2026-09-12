@@ -4,20 +4,24 @@ declare(strict_types=1);
 
 namespace Bpmore\StatamicLifecycle\Settings;
 
+use Statamic\Facades\Collection;
 use Statamic\Facades\Site;
 
 /**
  * The addon's settings screen in the control panel (Addons → Lifecycle →
  * Settings), built when asked for so it can list the sites the site has.
  *
- * So far: the owner of last resort, one per site, so that nothing is ever
- * ownerless (spec §2). Statamic stores what is chosen here in
- * resources/addons/lifecycle.yaml — in the repository, where a decision
- * like this belongs.
+ * The owner of last resort, one per site, so that nothing is ever ownerless
+ * (spec §2); and the escalation contact, one per collection, who hears when
+ * an owner has had long enough (spec §5). Statamic stores what is chosen
+ * here in resources/addons/lifecycle.yaml — in the repository, where a
+ * decision like this belongs.
  */
 final class SettingsBlueprint
 {
     private const PREFIX = 'owner_of_last_resort_';
+
+    private const CONTACT_PREFIX = 'escalation_contact_';
 
     /** @return array<string, mixed> blueprint contents */
     public static function contents(): array
@@ -39,6 +43,20 @@ final class SettingsBlueprint
             ];
         }
 
+        $contacts = [];
+
+        foreach (Collection::all()->sortBy(fn ($collection) => $collection->title()) as $collection) {
+            $contacts[] = [
+                'handle' => self::handleForCollection($collection->handle()),
+                'field' => [
+                    'type' => 'users',
+                    'display' => (string) $collection->title(),
+                    'max_items' => 1,
+                    'mode' => 'select',
+                ],
+            ];
+        }
+
         return [
             'tabs' => [
                 'owners' => [
@@ -49,10 +67,20 @@ final class SettingsBlueprint
                             'instructions' => __('Nothing should be ownerless. A page with no content owner, and no last author to guess from, belongs to this person.'),
                             'fields' => $fields,
                         ],
+                        [
+                            'display' => __('Escalation contacts'),
+                            'instructions' => __('Who hears when an owner has left a page overdue for long enough — the head of the department the collection belongs to. Leave a collection empty to escalate straight to the owner of last resort.'),
+                            'fields' => $contacts,
+                        ],
                     ],
                 ],
             ],
         ];
+    }
+
+    public static function handleForCollection(string $collection): string
+    {
+        return self::CONTACT_PREFIX.preg_replace('/[^a-z0-9_]/i', '_', $collection);
     }
 
     public static function handleForSite(string $site): string

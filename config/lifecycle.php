@@ -141,6 +141,35 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Escalation
+    |--------------------------------------------------------------------------
+    |
+    | When an owner has left a page overdue for `after_days`, the collection's
+    | escalation contact hears about it too — on the same cadence as the
+    | owner. After `last_resort_after_days`, so does the site's owner of last
+    | resort. Nobody is told twice over in two roles.
+    |
+    | 'contacts' names the escalation contact per collection, by user ID. The
+    | settings screen (Addons → Lifecycle) can name them too, and wins per
+    | collection; a collection with nobody escalates straight to the owner
+    | of last resort.
+    |
+    */
+
+    'escalation' => [
+
+        'after_days' => 14,
+
+        'last_resort_after_days' => 30,
+
+        'contacts' => [
+            // 'news' => 'a-user-id',
+        ],
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Recompute
     |--------------------------------------------------------------------------
     |

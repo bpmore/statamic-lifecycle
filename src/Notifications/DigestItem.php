@@ -6,7 +6,10 @@ namespace Bpmore\StatamicLifecycle\Notifications;
 
 use DateTimeImmutable;
 
-/** One page in a digest: what to call it, where to go, when it is due, and why it is listed. */
+/**
+ * One page in a digest: what to call it, where to go, when it is due, why it
+ * is listed — and, when it is listed because it was escalated, whose it is.
+ */
 final readonly class DigestItem
 {
     public function __construct(
@@ -17,5 +20,6 @@ final readonly class DigestItem
         public DateTimeImmutable $dueAt,
         public ReminderType $type,
         public ?int $daysBefore,
+        public ?string $ownerName = null,
     ) {}
 }

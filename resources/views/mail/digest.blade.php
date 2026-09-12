@@ -3,8 +3,21 @@
 
 Hello {{ $digest->recipientName }},
 
-You are the content owner of {{ $digest->count() === 1 ? 'a page' : $digest->count().' pages' }} that {{ $digest->count() === 1 ? 'needs' : 'need' }} a person to confirm {{ $digest->count() === 1 ? 'it is' : 'they are' }} still accurate. Open a page, read it, and press **Mark reviewed** in the sidebar — it takes a minute, and the record is what an auditor asks for.
+@php($own = $digest->count() - count($escalated))
+@if ($own > 0)
+You are the content owner of {{ $own === 1 ? 'a page' : $own.' pages' }} that {{ $own === 1 ? 'needs' : 'need' }} a person to confirm {{ $own === 1 ? 'it is' : 'they are' }} still accurate. Open a page, read it, and press **Mark reviewed** in the sidebar — it takes a minute, and the record is what an auditor asks for.
 
+@endif
+@if (count($escalated))
+## Escalated to you ({{ count($escalated) }})
+
+These pages are overdue for review and their owners have not confirmed them. You are hearing about them as {{ $own > 0 ? 'the escalation contact' : 'the escalation contact for them' }}: a word with the owner, or a review of your own, settles it.
+
+@foreach ($escalated as $item)
+- **{{ $item->title }}** — {{ $item->collection }} — owned by {{ $item->ownerName ?? 'nobody' }} — was due {{ $item->dueAt->format('j M Y') }}@if ($item->editUrl) — [Review it]({{ $item->editUrl }})@endif
+
+@endforeach
+@endif
 @if (count($overdue))
 ## Overdue ({{ count($overdue) }})
 

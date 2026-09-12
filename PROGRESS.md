@@ -32,7 +32,7 @@
 ## Phase 5 — Notifications
 - [x] Configurable schedule (30 / 7 / 0 / overdue)
 - [x] **Digest by default, one email per recipient** — never one per entry
-- [ ] Escalation to fallback owner, then owner-of-last-resort
+- [x] Escalation to fallback owner, then owner-of-last-resort
 - [ ] Quiet window; per-user frequency opt-out
 
 ## Phase 6 — Expiry actions (build the rails BEFORE the actions)
@@ -553,3 +553,26 @@
 - The subject names the count and, when everything listed is overdue, says so.
 - Verified on the host with the log mailer: the digest for a page due in five days, both text and
   HTML parts, the edit link resolving to the CP; recorded; the next run owed nothing.
+
+### 2026-09-11 — Escalation
+- **The spec's "fallback owner" is defined here as the collection's escalation contact** — the
+  head of the department the collection belongs to — since the spec names the role but not its
+  home. `Owners\EscalationContacts` mirrors `FallbackOwners`: `escalation.contacts` in config
+  (collection → user) plus a field per collection on the settings screen (settings win), only
+  people who exist, the missing named. A collection with nobody escalates straight to the owner
+  of last resort.
+- **Two thresholds, both from the review date**: after `escalation.after_days` (14) overdue the
+  contact hears; after `last_resort_after_days` (30) the site's owner of last resort does. Each
+  hears on the same cadence as the owner (`overdue_every`), each once per cycle per person, and
+  **nobody is told twice over in two roles** — the owner who is also the contact, the contact who
+  is also the last resort. The owner keeps hearing throughout; an escalation is an addition, not a
+  hand-off. All of it in the pure planner (7 more unit cases); `Reminders` resolves the two people
+  per row from collection and site.
+- The sent log's `recipient` now feeds dedup for escalations (the level *is* the person), so no
+  further migration. `Reminder` carries `ownerId` so the contact's email can say "owned by Alice
+  Ahmed"; `DigestItem` carries the name. The digest gets an "Escalated to you" section ahead of
+  the rest, its own subject when that is all there is, and a mixed one ("N pages need your
+  attention") when a contact also owns pages.
+- Verified on the host: the settings screen lists a contact per collection; a page 40 days overdue
+  owned by someone who has left is escalated to the owner of last resort, and the missing owner is
+  named as unreachable.

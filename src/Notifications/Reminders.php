@@ -6,6 +6,8 @@ namespace Bpmore\StatamicLifecycle\Notifications;
 
 use Bpmore\StatamicLifecycle\Models\EntryState;
 use Bpmore\StatamicLifecycle\Models\Notification;
+use Bpmore\StatamicLifecycle\Owners\EscalationContacts;
+use Bpmore\StatamicLifecycle\Owners\FallbackOwners;
 use Bpmore\StatamicLifecycle\State\Status;
 use DateTimeImmutable;
 
@@ -21,6 +23,8 @@ final class Reminders
     public function __construct(
         private readonly Schedule $schedule,
         private readonly ReminderPlanner $planner,
+        private readonly EscalationContacts $contacts,
+        private readonly FallbackOwners $fallback,
     ) {}
 
     /** @return list<Reminder> */
@@ -38,23 +42,28 @@ final class Reminders
             ->whereNotNull('owner_id')
             ->where('owner_type', 'user')
             ->orderBy('next_review_at')
-            ->get(['entry_id', 'next_review_at', 'owner_id']);
+            ->get(['entry_id', 'next_review_at', 'owner_id', 'site', 'collection']);
 
         if ($states->isEmpty()) {
             return [];
         }
 
+        $contacts = $this->contacts->resolved();
+        $lastResort = $this->fallback->resolved();
+
         $entries = $states->map(fn (EntryState $row): Reminderable => new Reminderable(
             $row->entry_id,
             $row->next_review_at,
             $row->owner_id,
+            escalateTo: $contacts[$row->collection] ?? null,
+            lastResort: $lastResort[$row->site] ?? null,
         ))->all();
 
         $sent = [];
 
         foreach ($states->pluck('entry_id')->chunk(500) as $ids) {
             foreach (Notification::query()->whereIn('entry_id', $ids->all())->get() as $row) {
-                $sent[] = new SentReminder($row->entry_id, $row->type, $row->days_before, $row->due_at, $row->sent_at);
+                $sent[] = new SentReminder($row->entry_id, $row->type, $row->days_before, $row->due_at, $row->sent_at, $row->recipient);
             }
         }
 

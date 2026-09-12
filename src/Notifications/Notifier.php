@@ -54,6 +54,13 @@ final class Notifier
                     continue;   // gone since the row was computed; the sweep will take the row
                 }
 
+                $ownerName = null;
+
+                if ($reminder->type === ReminderType::Escalation && $reminder->ownerId !== null) {
+                    $owner = User::find($reminder->ownerId);
+                    $ownerName = $owner === null ? $reminder->ownerId : ($owner->name() ?: (string) $owner->email());
+                }
+
                 $items[] = new DigestItem(
                     entryId: $reminder->entryId,
                     title: (string) ($entry->get('title') ?: $entry->slug()),
@@ -62,6 +69,7 @@ final class Notifier
                     dueAt: $reminder->dueAt,
                     type: $reminder->type,
                     daysBefore: $reminder->daysBefore,
+                    ownerName: $ownerName,
                 );
                 $kept[] = $reminder;
             }

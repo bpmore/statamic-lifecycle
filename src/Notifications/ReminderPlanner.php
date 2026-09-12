@@ -20,6 +20,10 @@ use DateTimeImmutable;
  *     reminder is about; a review moves the date, and the count starts over.
  *   - Once overdue, a reminder is owed at once, then every `overdueEvery`
  *     days, or once only when that is zero.
+ *   - After `escalateAfter` days overdue the collection's escalation contact
+ *     hears too, and after `lastResortAfter` the site's owner of last
+ *     resort — each on the same cadence, each once per cycle per person,
+ *     and never somebody who is already hearing about it as the owner.
  *
  * Day-granular throughout, like the status it follows.
  */
@@ -38,7 +42,8 @@ final class ReminderPlanner
 
         // Index what has been sent by entry and cycle.
         $stagesSent = [];      // entry|cycle => [ "type:days" => true ]
-        $lastOverdue = [];     // entry|cycle => latest sent_at
+        $lastOverdue = [];     // entry|cycle => latest overdue sent_at
+        $lastEscalation = [];  // entry|cycle|recipient => latest escalation sent_at
 
         foreach ($sent as $record) {
             $key = $record->entryId.'|'.($record->dueAt?->format('Y-m-d') ?? '');
@@ -46,6 +51,16 @@ final class ReminderPlanner
             if ($record->type === ReminderType::Overdue) {
                 if (! isset($lastOverdue[$key]) || $record->sentAt > $lastOverdue[$key]) {
                     $lastOverdue[$key] = $record->sentAt;
+                }
+
+                continue;
+            }
+
+            if ($record->type === ReminderType::Escalation) {
+                $who = $key.'|'.$record->recipient;
+
+                if (! isset($lastEscalation[$who]) || $record->sentAt > $lastEscalation[$who]) {
+                    $lastEscalation[$who] = $record->sentAt;
                 }
 
                 continue;
@@ -65,7 +80,7 @@ final class ReminderPlanner
                 $stage = $this->schedule->stageFor($daysUntil);
 
                 if ($stage !== null && ! isset($stagesSent[$key]['due_soon:'.$stage])) {
-                    $reminders[] = new Reminder($entry->entryId, ReminderType::DueSoon, $stage, $due, $entry->recipient);
+                    $reminders[] = new Reminder($entry->entryId, ReminderType::DueSoon, $stage, $due, $entry->recipient, $entry->recipient);
                 }
 
                 continue;
@@ -73,28 +88,51 @@ final class ReminderPlanner
 
             if ($daysUntil === 0) {
                 if ($this->schedule->onDueDay && ! isset($stagesSent[$key]['due:0'])) {
-                    $reminders[] = new Reminder($entry->entryId, ReminderType::Due, 0, $due, $entry->recipient);
+                    $reminders[] = new Reminder($entry->entryId, ReminderType::Due, 0, $due, $entry->recipient, $entry->recipient);
                 }
 
                 continue;
             }
 
-            // Overdue.
-            $last = $lastOverdue[$key] ?? null;
-
-            if ($last === null) {
-                $reminders[] = new Reminder($entry->entryId, ReminderType::Overdue, null, $due, $entry->recipient);
-
-                continue;
+            // Overdue: the owner, on the cadence.
+            if ($this->onCadence($lastOverdue[$key] ?? null, $today)) {
+                $reminders[] = new Reminder($entry->entryId, ReminderType::Overdue, null, $due, $entry->recipient, $entry->recipient);
             }
 
-            $every = $this->schedule->overdueEvery;
+            // Then, once the owner has had long enough, other people — each
+            // on the same cadence, and never somebody already hearing about
+            // it in another role.
+            $daysOverdue = -$daysUntil;
+            $told = [$entry->recipient];
 
-            if ($every > 0 && (int) $last->setTime(0, 0)->diff($today)->days >= $every) {
-                $reminders[] = new Reminder($entry->entryId, ReminderType::Overdue, null, $due, $entry->recipient);
+            foreach ([
+                [$this->schedule->escalateAfter, $entry->escalateTo],
+                [$this->schedule->lastResortAfter, $entry->lastResort],
+            ] as [$after, $person]) {
+                if ($person === null || $person === '' || $daysOverdue < $after || in_array($person, $told, true)) {
+                    continue;
+                }
+
+                $told[] = $person;
+
+                if ($this->onCadence($lastEscalation[$key.'|'.$person] ?? null, $today)) {
+                    $reminders[] = new Reminder($entry->entryId, ReminderType::Escalation, null, $due, $person, $entry->recipient);
+                }
             }
         }
 
         return $reminders;
+    }
+
+    /** At once when never sent; then every `overdueEvery` days; never again when that is zero. */
+    private function onCadence(?DateTimeImmutable $last, DateTimeImmutable $today): bool
+    {
+        if ($last === null) {
+            return true;
+        }
+
+        $every = $this->schedule->overdueEvery;
+
+        return $every > 0 && (int) $last->setTime(0, 0)->diff($today)->days >= $every;
     }
 }

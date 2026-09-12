@@ -112,6 +112,7 @@ class ServiceProvider extends AddonServiceProvider
 
         $this->app->singleton(Notifications\Schedule::class, fn ($app): Notifications\Schedule => Notifications\Schedule::fromConfig(
             (array) $app['config']->get('lifecycle.notifications', []),
+            (array) $app['config']->get('lifecycle.escalation', []),
         ));
 
         $this->app->singleton(StateRecomputer::class, fn ($app): StateRecomputer => new StateRecomputer(

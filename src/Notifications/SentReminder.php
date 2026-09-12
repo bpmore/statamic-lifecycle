@@ -15,5 +15,6 @@ final readonly class SentReminder
         public ?int $daysBefore,
         public ?DateTimeImmutable $dueAt,
         public DateTimeImmutable $sentAt,
+        public string $recipient = '',
     ) {}
 }

@@ -36,12 +36,23 @@ final readonly class Digest
 
     public function subject(): string
     {
-        $overdue = count($this->of(ReminderType::Overdue)) + count($this->of(ReminderType::Escalation));
+        $escalated = count($this->of(ReminderType::Escalation));
+        $overdue = count($this->of(ReminderType::Overdue));
+
+        if ($escalated > 0 && $escalated === $this->count()) {
+            return trans_choice('{1}An overdue page has been escalated to you|[2,*]:count overdue pages have been escalated to you', $escalated, ['count' => $escalated]);
+        }
 
         if ($overdue > 0 && $overdue === $this->count()) {
             return trans_choice('{1}A page you own is overdue for review|[2,*]:count pages you own are overdue for review', $overdue, ['count' => $overdue]);
         }
 
-        return trans_choice('{1}A page you own needs a review|[2,*]:count pages you own need a review', $this->count(), ['count' => $this->count()]);
+        $own = $this->count() - $escalated;
+
+        if ($escalated > 0) {
+            return trans_choice('{1}A page needs your attention|[2,*]:count pages need your attention', $this->count(), ['count' => $this->count()]);
+        }
+
+        return trans_choice('{1}A page you own needs a review|[2,*]:count pages you own need a review', $own, ['count' => $own]);
     }
 }

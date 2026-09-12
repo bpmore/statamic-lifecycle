@@ -149,3 +149,67 @@ describe('cycles', function () {
         expect(owed([], [], '2026-11-10'))->toBe([]);
     });
 });
+
+describe('escalation', function () {
+    $contacts = fn (string $date, string $id = 'page') => new Reminderable($id, new DateTimeImmutable($date), 'alice', escalateTo: 'head', lastResort: 'webmaster');
+
+    it('tells the collection\'s contact after the first threshold, and the owner of last resort after the second', function () use ($contacts) {
+        // Due 1 Dec. Escalate after 14 days, last resort after 30.
+        expect(owed([$contacts('2026-12-01')], [], '2026-12-10'))->toBe(['page overdue → alice'])
+            ->and(owed([$contacts('2026-12-01')], [], '2026-12-15'))->toBe(['page overdue → alice', 'page escalation → head'])
+            ->and(owed([$contacts('2026-12-01')], [], '2026-12-31'))->toBe(['page overdue → alice', 'page escalation → head', 'page escalation → webmaster']);
+    });
+
+    it('names the owner on an escalation, so the email can say whose page it is', function () use ($contacts) {
+        $reminders = (new ReminderPlanner(new Schedule))->plan([$contacts('2026-12-01')], [], new DateTimeImmutable('2026-12-15'));
+
+        expect($reminders[1]->type)->toBe(ReminderType::Escalation)
+            ->and($reminders[1]->recipient)->toBe('head')
+            ->and($reminders[1]->ownerId)->toBe('alice')
+            ->and($reminders[0]->ownerId)->toBe('alice');
+    });
+
+    it('repeats to each person on the overdue cadence, each counted on their own', function () use ($contacts) {
+        $sentTo = fn (string $who, string $on) => new SentReminder('page', ReminderType::Escalation, null, new DateTimeImmutable('2026-12-01'), new DateTimeImmutable($on), $who);
+        $ownerTold = sent('overdue', null, '2026-12-01', '2026-12-30');
+
+        expect(owed([$contacts('2026-12-01')], [$ownerTold, $sentTo('head', '2026-12-29'), $sentTo('webmaster', '2026-12-31')], '2027-01-02'))->toBe([])
+            ->and(owed([$contacts('2026-12-01')], [$ownerTold, $sentTo('head', '2026-12-24'), $sentTo('webmaster', '2026-12-31')], '2027-01-02'))->toBe(['page escalation → head'])
+            ->and(owed([$contacts('2026-12-01')], [$ownerTold, $sentTo('head', '2026-12-24'), $sentTo('webmaster', '2026-12-24')], '2027-01-02'))->toBe(['page escalation → head', 'page escalation → webmaster']);
+    });
+
+    it('never tells somebody twice over in two roles', function () {
+        // The owner is the contact; the contact is the owner of last resort.
+        $ownerIsContact = new Reminderable('page', new DateTimeImmutable('2026-12-01'), 'alice', escalateTo: 'alice', lastResort: 'webmaster');
+        $contactIsLastResort = new Reminderable('page', new DateTimeImmutable('2026-12-01'), 'alice', escalateTo: 'head', lastResort: 'head');
+        $ownerIsLastResort = new Reminderable('page', new DateTimeImmutable('2026-12-01'), 'webmaster', escalateTo: null, lastResort: 'webmaster');
+
+        expect(owed([$ownerIsContact], [], '2026-12-31'))->toBe(['page overdue → alice', 'page escalation → webmaster'])
+            ->and(owed([$contactIsLastResort], [], '2026-12-31'))->toBe(['page overdue → alice', 'page escalation → head'])
+            ->and(owed([$ownerIsLastResort], [], '2026-12-31'))->toBe(['page overdue → webmaster']);
+    });
+
+    it('skips a level nobody is named for', function () {
+        $noContact = new Reminderable('page', new DateTimeImmutable('2026-12-01'), 'alice', escalateTo: null, lastResort: 'webmaster');
+
+        expect(owed([$noContact], [], '2026-12-15'))->toBe(['page overdue → alice'])
+            ->and(owed([$noContact], [], '2026-12-31'))->toBe(['page overdue → alice', 'page escalation → webmaster']);
+    });
+
+    it('follows the site\'s thresholds', function () use ($contacts) {
+        $quick = new Schedule([30, 7, 0], overdueEvery: 7, escalateAfter: 3, lastResortAfter: 5);
+
+        expect(owed([$contacts('2026-12-01')], [], '2026-12-04', $quick))->toBe(['page overdue → alice', 'page escalation → head'])
+            ->and(owed([$contacts('2026-12-01')], [], '2026-12-06', $quick))->toBe(['page overdue → alice', 'page escalation → head', 'page escalation → webmaster']);
+
+        expect(Schedule::fromConfig([], ['after_days' => 3, 'last_resort_after_days' => 5])->escalateAfter)->toBe(3)
+            ->and(Schedule::fromConfig([], [])->lastResortAfter)->toBe(30);
+        expect(fn () => new Schedule(escalateAfter: 0))->toThrow(InvalidArgumentException::class);
+    });
+
+    it('starts over with the cycle, like everything else', function () use ($contacts) {
+        $old = new SentReminder('page', ReminderType::Escalation, null, new DateTimeImmutable('2025-12-01'), new DateTimeImmutable('2025-12-20'), 'head');
+
+        expect(owed([$contacts('2026-12-01')], [$old], '2026-12-20'))->toBe(['page overdue → alice', 'page escalation → head']);
+    });
+});
