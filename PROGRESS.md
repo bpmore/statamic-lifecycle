@@ -48,6 +48,7 @@
 ## Phase 7 — Surfaces + ship
 - [ ] Utility dashboards by collection / site / owner; "My content" view
 - [ ] Dashboard widget
+- [ ] **Report a Freshness band to Site Weather.** One class implementing `Bpmore\SiteWeather\Contracts\WeatherContributor` (`key()` `freshness`, `label()` `Freshness`, `reading()`), tagged by name as `site-weather.contributors` in the provider's `register()` — Site Weather is a `suggest`, plus `require-dev` (path repository `../statamic-site-weather` until it is on Packagist). `reading()` reads stored results only — the share of tracked entries whose `EntryState` status is overdue or expired — never recomputes; asks whether the addon is set up before it reads; returns `Reading::unknown()` with a next-step headline when not set up or nothing measured; a measured state carries the latest `computed_at`; `url` is the lifecycle utility dashboard from the task above. Thresholds are this product's call. Follow `../statamic-a11y-docs/src/Weather/DocumentsContributor.php` and its test. Then drop the fake `freshness` band from `../statamic-dev/app/Providers/SiteWeatherDemoProvider.php` and confirm the real one on the dev-site tile.
 - [ ] Gate: require owner + review date, opt-in and off by default
 - [ ] Antlers tags: `last_reviewed`, `is_stale`, `next_review`
 - [ ] Governance report export (reuse the tagged-PDF pipeline)
