@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Bpmore\StatamicLifecycle\Panel;
 
 use Bpmore\StatamicLifecycle\Blueprint\LifecycleFields;
+use Bpmore\StatamicLifecycle\Expiry\ActionLog;
+use Bpmore\StatamicLifecycle\Models\AutomatedAction;
 use Bpmore\StatamicLifecycle\Models\EntryState;
 use Bpmore\StatamicLifecycle\Reviews\Outcome;
 use Bpmore\StatamicLifecycle\Reviews\ReviewHistory;
@@ -30,6 +32,7 @@ final class SidebarPanel
     public function __construct(
         private readonly LifecycleDatabase $database,
         private readonly ReviewHistory $history,
+        private readonly ActionLog $actions,
     ) {}
 
     /** @return array<string, mixed> */
@@ -55,9 +58,13 @@ final class SidebarPanel
             ],
             'state' => $row === null ? null : $this->state($row),
             'timeline' => $installed ? $this->history->for($id)->toArray() : null,
+            // The last thing Lifecycle did to the page that has not been put
+            // back, if anything — and the one click that puts it back.
+            'last_action' => $installed ? $this->lastAction($this->actions->outstanding($id)) : null,
             'outcomes' => Outcome::options(),
             // Provisional, like the action's own rule: whoever may edit may attest.
             'can_attest' => $user !== null && (bool) $user->can('edit', $entry),
+            'can_put_back' => $user !== null && (bool) $user->can('edit', $entry),
             'urls' => [
                 'attest' => cp_route('collections.entries.actions.run', ['collection' => $entry->collectionHandle()]),
                 'refresh' => cp_route('lifecycle.entries.status', ['entry' => $id]),
@@ -73,8 +80,10 @@ final class SidebarPanel
             'entry' => null,
             'state' => null,
             'timeline' => null,
+            'last_action' => null,
             'outcomes' => Outcome::options(),
             'can_attest' => false,
+            'can_put_back' => false,
             'urls' => null,
         ];
     }
@@ -108,6 +117,22 @@ final class SidebarPanel
             'baselined' => $row->baselined,
             'baseline_review_at' => $row->baseline_review_at?->format(DATE_ATOM),
             'computed_at' => $row->computed_at->format(DATE_ATOM),
+        ];
+    }
+
+    /** @return array<string, mixed>|null */
+    private function lastAction(?AutomatedAction $action): ?array
+    {
+        if ($action === null) {
+            return null;
+        }
+
+        return [
+            'id' => (int) $action->id,
+            'action' => $action->action->value,
+            'label' => $action->action->label(),
+            'applied_at' => $action->applied_at->format(DATE_ATOM),
+            'triggered_by' => $action->triggered_by,
         ];
     }
 

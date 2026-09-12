@@ -23,6 +23,7 @@ const { $axios } = getCurrentInstance().appContext.config.globalProperties;
 const panel = ref(props.value);
 const attesting = ref(false);
 const saving = ref(false);
+const puttingBack = ref(false);
 const outcome = ref('current');
 const note = ref('');
 const errors = ref({});
@@ -48,6 +49,31 @@ function open() {
     note.value = '';
     errors.value = {};
     attesting.value = true;
+}
+
+async function putBack() {
+    puttingBack.value = true;
+
+    try {
+        const { data } = await $axios.post(panel.value.urls.attest, {
+            action: 'put_back',
+            selections: [panel.value.entry.id],
+            values: {},
+        });
+
+        if (data.success === false) {
+            toast.error(data.message ?? 'Could not put it back.');
+            return;
+        }
+
+        toast.success(data.message ?? 'Put back.');
+        const fresh = await $axios.get(panel.value.urls.refresh);
+        panel.value = fresh.data;
+    } catch (e) {
+        toast.error(e.response?.data?.message ?? 'Could not put it back.');
+    } finally {
+        puttingBack.value = false;
+    }
 }
 
 async function submit() {
@@ -110,6 +136,15 @@ async function submit() {
                 <template v-if="!panel.entry.published">Not published, so not in the review cycle.</template>
                 <template v-else>Not computed yet. The nightly recompute will pick it up, or run <code>php please lifecycle:recompute</code>.</template>
             </Text>
+        </div>
+
+        <!-- What Lifecycle changed, and the one click that undoes it -->
+        <div v-if="panel.last_action" class="space-y-2">
+            <Text as="div" size="sm" class="font-medium">Lifecycle changed this page</Text>
+            <Text as="div" size="sm">
+                It chose to {{ panel.last_action.label }} on {{ day(panel.last_action.applied_at) }}, because the page stayed overdue.
+            </Text>
+            <Button v-if="panel.can_put_back" variant="ghost" :loading="puttingBack" :disabled="puttingBack" @click="putBack">Put it back</Button>
         </div>
 
         <!-- Owner -->

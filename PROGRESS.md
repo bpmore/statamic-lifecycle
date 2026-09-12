@@ -41,7 +41,7 @@
 - [x] Mandatory notice period
 - [x] Never-touch list
 - [x] Navigation-reference check before unpublish
-- [ ] Action log with `previous_state` + one-click revert
+- [x] Action log with `previous_state` + one-click revert
 - [ ] `lifecycle:expire --dry-run` (documented as the first step)
 - [ ] Only then: banner variable, noindex, unpublish — all off by default, opt-in per collection
 
@@ -685,3 +685,23 @@
   there does not restructure anything or break links the way a menu does; children keep rendering.
 - The host has no navigations, so it can only confirm "none → nothing linked"; the real-nav cases
   (depth, two navs, a tree per site) are in the suite.
+
+### 2026-09-11 — The action log and one-click revert
+- **Rail 6**: `Expiry\ActionLog::record(entry, action, previousState, triggeredBy)` writes every
+  automated change with what the page looked like before — `previous_state` is a map: `published`
+  for an unpublish, otherwise the entry's own data keys with their old values, null for a key that
+  was not there. `outstanding(id)` is the latest change not yet put back; `history(id)` the lot.
+- **`revert(action, byUser)`** applies the map — `published` through Statamic's own
+  `publish()`/`unpublish()` with a user and a message, so revisions are honoured where they are
+  on; data keys set or removed and saved — marks the row `reverted_at`/`reverted_by`, and writes a
+  `restore` row of its own carrying what *it* undid. So the log says both what happened and that it
+  was undone. Refuses to put back twice, to put back a restore, or a page that is gone; never makes
+  the person the last author.
+- **One click, in both places the editor looks**: `Actions\PutBack` (`put_back`) in the listing and
+  the entry's action menu, offered only where there is something to undo; and the sidebar panel
+  now says "Lifecycle changed this page — it chose to unpublish it on 11 Sep, because the page
+  stayed overdue" with a *Put it back* button that posts the same action and refreshes.
+- Verified in headless Chrome against the host: the panel showed the change, the click put the
+  page back, the toast showed, the block disappeared, the log shows the unpublish reverted by the
+  clicker and the restore row. Host side effects undone (temp user, Pro flag, test rows).
+- `ActionLog` is the impure half of the rail; the purity check's exclusion list is now a pattern.

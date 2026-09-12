@@ -25,6 +25,7 @@ class ServiceProvider extends AddonServiceProvider
     protected $actions = [
         Actions\MarkReviewed::class,
         Actions\AssignOwner::class,
+        Actions\PutBack::class,
     ];
 
     protected $fieldtypes = [

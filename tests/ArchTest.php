@@ -31,8 +31,8 @@ it('keeps the state computation free of any framework', function (string $file) 
 })->with(array_filter(
     phpSources(['src/State', 'src/Expiry']),
     // The rails' rules are pure; what they read and do around them (the log,
-    // the mail, the day's count) is not.
-    fn (string $path): bool => ! str_contains($path, 'TripAlert') && ! str_contains($path, 'ActionsToday') && ! str_contains($path, 'NoticesSent') && ! str_contains($path, 'NavigationReferences'),
+    // the mail, the day's count, the navigations, the entries) is not.
+    fn (string $path): bool => ! preg_match('#/(TripAlert|TripAlertMail|ActionsToday|NoticesSent|NavigationReferences|ActionLog)\.php$#', $path),
     ARRAY_FILTER_USE_KEY,
 ));
 
