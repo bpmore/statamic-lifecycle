@@ -130,8 +130,13 @@ class ServiceProvider extends AddonServiceProvider
      */
     protected function schedule(Schedule $schedule): void
     {
-        $schedule->command('lifecycle:recompute')
-            ->daily()
-            ->when(fn (): bool => $this->app->make(Storage\LifecycleDatabase::class)->isInstalled());
+        $installed = fn (): bool => $this->app->make(Storage\LifecycleDatabase::class)->isInstalled();
+
+        $schedule->command('lifecycle:recompute')->daily()->when($installed);
+
+        // After the recompute, at an hour people read email.
+        $schedule->command('lifecycle:notify')
+            ->dailyAt((string) $this->app['config']->get('lifecycle.notifications.send_at', '07:00'))
+            ->when($installed);
     }
 }

@@ -133,6 +133,10 @@ return [
 
         'overdue_every' => 7,
 
+        // When the day's digests go out. After the nightly recompute, at an
+        // hour people read email.
+        'send_at' => env('LIFECYCLE_SEND_AT', '07:00'),
+
     ],
 
     /*

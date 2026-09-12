@@ -31,7 +31,7 @@
 
 ## Phase 5 — Notifications
 - [x] Configurable schedule (30 / 7 / 0 / overdue)
-- [ ] **Digest by default, one email per recipient** — never one per entry
+- [x] **Digest by default, one email per recipient** — never one per entry
 - [ ] Escalation to fallback owner, then owner-of-last-resort
 - [ ] Quiet window; per-user frequency opt-out
 
@@ -534,3 +534,22 @@
   offers users), as are pages with nobody to tell — the dashboard is where those show.
 - Verified on the host: nothing owed for a page due next year; with its date moved to five days
   out, one `due_soon` (7-day stage) reminder to the owner.
+
+### 2026-09-11 — The digest
+- **Structurally one email per person.** `Notifications\Notifier::digests(owed)` groups every
+  reminder by recipient into a `Digest` (items with title, collection, due date, CP edit link;
+  overdue first, then due today, then due soon); `send()` mails each as `DigestMail` — a markdown
+  mailable, `lifecycle::mail.digest`, plain words, one list per reason, "Review it" links — and
+  **records the reminders only after the send returned**, so a failed send is owed again tomorrow
+  and a successful one is never repeated. Tested: an owner of 300 overdue pages gets exactly one
+  email listing 300, and 300 rows with one `sent_at`.
+- **Who cannot be reached** is said, not swallowed: a recipient who has left or has no email is
+  listed by `lifecycle:notify` ("cannot be reminded: no email address") and nothing is recorded
+  for them — their pages stay owed until someone fixes the owner. A page deleted since its row was
+  computed is left out of the digest (the sweep takes the row).
+- Sending is synchronous inside the command; the command itself runs from the scheduler, daily at
+  `notifications.send_at` (default 07:00, after the midnight recompute — an hour people read
+  email), guarded on installed like the recompute. A site with a queue can `runInBackground()` it.
+- The subject names the count and, when everything listed is overdue, says so.
+- Verified on the host with the log mailer: the digest for a page due in five days, both text and
+  HTML parts, the edit link resolving to the CP; recorded; the next run owed nothing.

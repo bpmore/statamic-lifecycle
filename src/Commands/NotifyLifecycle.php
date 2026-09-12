@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Bpmore\StatamicLifecycle\Commands;
 
+use Bpmore\StatamicLifecycle\Notifications\Notifier;
 use Bpmore\StatamicLifecycle\Notifications\Reminder;
 use Bpmore\StatamicLifecycle\Notifications\Reminders;
 use Bpmore\StatamicLifecycle\Notifications\ReminderType;
@@ -15,11 +16,9 @@ use Statamic\Console\RunsInPlease;
 use Statamic\Facades\User;
 
 /**
- * Sends the day's reminders. Scheduled daily.
- *
- * --dry-run shows who would hear about what, and sends nothing. As of this
- * task only the plan exists; the digest that carries it is the next one,
- * and until it lands a run without --dry-run says so rather than pretend.
+ * Sends the day's reminders: one digest per person, whatever it lists.
+ * Scheduled daily. --dry-run shows who would hear about what, and sends
+ * nothing.
  */
 class NotifyLifecycle extends Command
 {
@@ -30,7 +29,7 @@ class NotifyLifecycle extends Command
 
     protected $description = 'Send the day\'s review reminders, one digest per person';
 
-    public function handle(LifecycleDatabase $database, Reminders $reminders, Schedule $schedule): int
+    public function handle(LifecycleDatabase $database, Reminders $reminders, Schedule $schedule, Notifier $notifier): int
     {
         if (! $database->isInstalled()) {
             $this->components->error('Lifecycle is not installed on ['.LifecycleDatabase::connectionName().']. Run `php please lifecycle:install` first.');
@@ -54,6 +53,10 @@ class NotifyLifecycle extends Command
             $this->printPlan($owed);
         }
 
+        foreach ($notifier->unreachable($owed) as $recipient => $reason) {
+            $this->components->warn("[{$recipient}] cannot be reminded: {$reason}.");
+        }
+
         if ($this->option('dry-run')) {
             $this->newLine();
             $this->components->warn('Dry run: nothing was sent.');
@@ -61,10 +64,27 @@ class NotifyLifecycle extends Command
             return self::SUCCESS;
         }
 
-        $this->newLine();
-        $this->components->error('Sending is not built yet: nothing was sent. Run with --dry-run to see the plan.');
+        if ($owed === []) {
+            return self::SUCCESS;
+        }
 
-        return self::FAILURE;
+        $digests = $notifier->digests($owed);
+        $result = $notifier->send($digests, $today);
+
+        $this->newLine();
+        $this->components->info(sprintf(
+            'Sent %s %s covering %s %s.',
+            number_format($result['sent']),
+            $result['sent'] === 1 ? 'digest' : 'digests',
+            number_format($result['reminders']),
+            $result['reminders'] === 1 ? 'reminder' : 'reminders',
+        ));
+
+        foreach ($result['failed'] as $email) {
+            $this->components->error("Could not send to {$email}; it will be tried again tomorrow.");
+        }
+
+        return $result['failed'] === [] ? self::SUCCESS : self::FAILURE;
     }
 
     /**

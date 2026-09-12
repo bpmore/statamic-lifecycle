@@ -149,14 +149,4 @@ describe('the command', function () {
             ->expectsOutputToContain('0 reminders are owed today.')
             ->assertExitCode(0);
     });
-
-    it('does not pretend to send until sending exists', function () {
-        stateRow('today', '2026-09-11');
-
-        $this->artisan('lifecycle:notify')
-            ->expectsOutputToContain('Sending is not built yet: nothing was sent.')
-            ->assertExitCode(1);
-
-        expect(Notification::query()->count())->toBe(0);
-    });
 });
