@@ -210,6 +210,13 @@ return [
     | page that has been overdue for `expired_after_days`. Before turning any
     | on, run `php please lifecycle:expire --dry-run` and read what it says.
     |
+    | A banner or a noindex sets the field named in 'fields' to true on the
+    | entry, and no more: your template decides whether to show a banner,
+    | and whatever writes <meta name="robots"> decides to honour the flag.
+    | Point 'noindex' at your SEO addon's own field if it has one.
+    |
+    | The run happens daily at 'run_at', before the day's digests.
+    |
     */
 
     'expiry' => [
@@ -217,6 +224,13 @@ return [
         'collections' => [
             // 'news' => ['banner' => true, 'noindex' => true, 'unpublish' => false],
         ],
+
+        'fields' => [
+            'banner' => 'lifecycle_banner',
+            'noindex' => 'lifecycle_noindex',
+        ],
+
+        'run_at' => env('LIFECYCLE_EXPIRE_AT', '06:30'),
 
         'circuit_breaker' => [
             'max_share' => '10%',

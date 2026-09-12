@@ -151,6 +151,10 @@ class ServiceProvider extends AddonServiceProvider
             (array) $app['config']->get('lifecycle.expiry', []),
         ));
 
+        $this->app->bind(Expiry\ActionApplier::class, fn ($app): Expiry\ActionApplier => Expiry\ActionApplier::fromConfig(
+            (array) $app['config']->get('lifecycle.expiry', []),
+        ));
+
         $this->app->singleton(StateRecomputer::class, fn ($app): StateRecomputer => new StateRecomputer(
             $app->make(Storage\StateStore::class),
             $app->make(State\StateComputer::class),
@@ -174,6 +178,11 @@ class ServiceProvider extends AddonServiceProvider
         // After the recompute, at an hour people read email.
         $schedule->command('lifecycle:notify')
             ->dailyAt((string) $this->app['config']->get('lifecycle.notifications.send_at', '07:00'))
+            ->when($installed);
+
+        // Daily, and inert until a collection opts in (spec §9).
+        $schedule->command('lifecycle:expire')
+            ->dailyAt((string) $this->app['config']->get('lifecycle.expiry.run_at', '06:30'))
             ->when($installed);
     }
 }

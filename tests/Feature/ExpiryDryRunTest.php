@@ -204,15 +204,11 @@ describe('the command', function () {
             ->and(Entry::find('old')->get('lifecycle_banner'))->toBeNull();
     });
 
-    it('refuses a collection that does not exist, and does not pretend to act until the actions exist', function () {
+    it('refuses a collection that does not exist', function () {
         config(['lifecycle.expiry.collections' => ['news' => ['banner' => true]]]);
 
         $this->artisan('lifecycle:expire', ['--dry-run' => true, '--collection' => 'nope'])
             ->expectsOutputToContain('There is no collection called [nope].')
-            ->assertExitCode(1);
-
-        $this->artisan('lifecycle:expire')
-            ->expectsOutputToContain('The actions are not built yet: nothing was changed.')
             ->assertExitCode(1);
     });
 });

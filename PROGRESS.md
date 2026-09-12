@@ -43,7 +43,7 @@
 - [x] Navigation-reference check before unpublish
 - [x] Action log with `previous_state` + one-click revert
 - [x] `lifecycle:expire --dry-run` (documented as the first step)
-- [ ] Only then: banner variable, noindex, unpublish — all off by default, opt-in per collection
+- [x] Only then: banner variable, noindex, unpublish — all off by default, opt-in per collection
 
 ## Phase 7 — Surfaces + ship
 - [ ] Utility dashboards by collection / site / owner; "My content" view
@@ -730,3 +730,35 @@
 - Host noise, not ours: the `pages` tree in the Stache has the draft handbook at the root and home
   at `/home`, disagreeing with the tree file — a stale cache from another session's edits. It is
   why the `/` never-touch pattern did not apply to home in the host dry run.
+
+### 2026-09-12 — The actions
+- **Only now, behind all six rails.** `Expiry\ActionApplier`: banner and noindex set a field on
+  the entry to true — `expiry.fields.banner` / `.noindex`, default `lifecycle_banner` /
+  `lifecycle_noindex`, so a site with an SEO addon can point noindex at that addon's own field —
+  and nothing more: the template decides whether to render a banner, whatever writes
+  `<meta name="robots">` decides to honour the flag. Lifecycle never injects markup. Unpublish
+  goes through Statamic's own `unpublish()` with a message, so revisions are honoured. None makes
+  Lifecycle the last author. **Decided**: a field, not a value in the addon's tables, because a
+  field is the one thing every template and every SEO addon can read; unpublish writes the entry
+  anyway; and `previous_state`/revert is built around entry state. The Phase 7 tags can expose it too.
+- **`Expiry\ExpiryRunner::run(plan)`**: sends the notices, takes the allowed actions, writes each to
+  the log *before moving on* (a run that dies halfway leaves an exact record), raises the breaker
+  alert. **Notices go past the frequency preference** — "your page will change next week" is not a
+  reminder anyone has muted, and silence would let a change happen unannounced — but respect a
+  quiet day (held, planned again tomorrow, nothing recorded).
+- `lifecycle:expire` now runs for real without `--dry-run`, prints what it did, exits non-zero if
+  any action failed, and is scheduled daily at `expiry.run_at` (06:30, before the digests), guarded
+  on installed, inert until a collection opts in. An owner announced a change and also owed
+  reminders gets two emails that day — an announcement is worth its own.
+- Tested end to end in the suite: notify → wait → act after the period → both actions logged with
+  what they replaced → put back from the log; a change a person put back is not made again this
+  cycle; the breaker alert; one page failing does not stop the rest and is named.
+- **Verified on the host**: `pages` opted in at runtime, the home page expired → run 1 sent the
+  notice (the real email, "Lifecycle will show a banner on it on or after 19 Sep 2026"); notice
+  back-dated → run 2 wrote `lifecycle_banner: true` into `home.md` and logged it with
+  `{"lifecycle_banner": null}`; `revert()` took it out again. Host tidied.
+- Host noise: the site became multisite yesterday evening (another session); entries now live under
+  `content/collections/<collection>/default/`. Entry paths come from `$entry->path()`, so nothing
+  of ours cared, but a hand-typed path did.
+- **Phase 6 is complete.** Nothing on the live site changes unless a collection opts in; when it
+  does, every change is announced, capped, bounded, logged, and one click from undone.

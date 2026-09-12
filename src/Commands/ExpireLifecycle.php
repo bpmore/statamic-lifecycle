@@ -8,6 +8,7 @@ use Bpmore\StatamicLifecycle\Expiry\Candidate;
 use Bpmore\StatamicLifecycle\Expiry\EnabledActions;
 use Bpmore\StatamicLifecycle\Expiry\ExpiryPlan;
 use Bpmore\StatamicLifecycle\Expiry\ExpiryPlanner;
+use Bpmore\StatamicLifecycle\Expiry\ExpiryRunner;
 use Bpmore\StatamicLifecycle\Storage\LifecycleDatabase;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
@@ -17,12 +18,12 @@ use Statamic\Facades\Entry;
 use Statamic\Facades\User;
 
 /**
- * The dangerous part (spec §6), behind every rail.
+ * The dangerous part (spec §6), behind every rail. Scheduled daily; inert
+ * until a collection opts in.
  *
  * --dry-run prints exactly what would happen and changes nothing. It is the
  * documented first step: run it, read it, and only then let a collection
- * opt into anything. The actions themselves are the next task; until they
- * land, a run without --dry-run says so rather than pretend.
+ * opt into anything.
  */
 class ExpireLifecycle extends Command
 {
@@ -35,7 +36,7 @@ class ExpireLifecycle extends Command
 
     protected $description = 'Apply the expiry actions collections have opted into, behind every rail';
 
-    public function handle(LifecycleDatabase $database, EnabledActions $enabled, ExpiryPlanner $planner): int
+    public function handle(LifecycleDatabase $database, EnabledActions $enabled, ExpiryPlanner $planner, ExpiryRunner $runner): int
     {
         if (! $database->isInstalled()) {
             $this->components->error('Lifecycle is not installed on ['.LifecycleDatabase::connectionName().']. Run `php please lifecycle:install` first.');
@@ -70,10 +71,35 @@ class ExpireLifecycle extends Command
             return self::SUCCESS;
         }
 
-        $this->newLine();
-        $this->components->error('The actions are not built yet: nothing was changed. Run with --dry-run to see the plan.');
+        if ($plan->isEmpty()) {
+            return self::SUCCESS;
+        }
 
-        return self::FAILURE;
+        $outcome = $runner->run($plan, $now);
+
+        $this->newLine();
+
+        if ($outcome->noticesHeld !== null) {
+            $this->components->info("Notices held: {$outcome->noticesHeld}. They will go on the next day that is not quiet.");
+        } elseif ($outcome->noticesSent > 0) {
+            $this->components->info(sprintf('Notified owners of %s %s.', number_format($outcome->noticesSent), $outcome->noticesSent === 1 ? 'coming action' : 'coming actions'));
+        }
+
+        $this->components->info(sprintf(
+            'Took %s %s, each written to the log with what it replaced.',
+            number_format(count($outcome->applied)),
+            count($outcome->applied) === 1 ? 'action' : 'actions',
+        ));
+
+        foreach ($outcome->failed as $failure) {
+            $this->components->error(sprintf('Could not %s %s: %s', $failure->candidate->action->label(), $this->name($failure->candidate->entryId), $failure->reason));
+        }
+
+        if ($outcome->alerted > 0) {
+            $this->components->warn(sprintf('Told an admin about %s %s the circuit breaker refused.', $outcome->alerted, $outcome->alerted === 1 ? 'collection' : 'collections'));
+        }
+
+        return $outcome->failed === [] ? self::SUCCESS : self::FAILURE;
     }
 
     private function printOptIns(EnabledActions $enabled, ?string $only): void

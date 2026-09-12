@@ -32,7 +32,7 @@ it('keeps the state computation free of any framework', function (string $file) 
     phpSources(['src/State', 'src/Expiry']),
     // The rails' rules are pure; what they read and do around them (the log,
     // the mail, the day's count, the navigations, the entries) is not.
-    fn (string $path): bool => ! preg_match('#/(TripAlert|TripAlertMail|ActionsToday|NoticesSent|NavigationReferences|ActionLog|ExpiryPlanner|ExpiryPlan)\.php$#', $path),
+    fn (string $path): bool => ! preg_match('#/(TripAlert|TripAlertMail|ActionsToday|NoticesSent|NavigationReferences|ActionLog|ExpiryPlanner|ExpiryPlan|ActionApplier|ExpiryRunner|ExpiryOutcome)\.php$#', $path),
     ARRAY_FILTER_USE_KEY,
 ));
 
