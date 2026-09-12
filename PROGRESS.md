@@ -38,7 +38,7 @@
 ## Phase 6 — Expiry actions (build the rails BEFORE the actions)
 - [x] Percentage circuit breaker (default 10% of a collection)
 - [x] Daily action cap (default 25)
-- [ ] Mandatory notice period
+- [x] Mandatory notice period
 - [ ] Never-touch list
 - [ ] Navigation-reference check before unpublish
 - [ ] Action log with `previous_state` + one-click revert
@@ -633,3 +633,25 @@
   with `appliedOn(day)` and `counted()` scopes; `Expiry\ActionsToday` reads how much of the day is
   spent from the log, in the app's timezone, restores excluded. The purity check skips it.
 - Verified on the host: 25 a day, none used, 30 wanted → 25 allowed and 5 put off.
+
+### 2026-09-11 — The notice period
+- **Rail 3, pure**: `Expiry\NoticePeriod::check(candidates, notices, today)` sorts a run three ways
+  — never noticed for this review date and this action → *to notify* (and nothing else happens
+  today); noticed fewer than `expiry.notice_days` (7) ago → *waiting*, with the day it may happen
+  from; noticed long enough ago → *allowed*. Counted from the *first* notice, per action (notice of
+  a banner is not notice of an unpublish) and per cycle (a review starts over — the page is no
+  longer overdue). Never fewer than one day: a period of 0 still means the next day, so notice and
+  action are never the same run, whatever the number. Restores need no notice. 10 unit cases.
+- **The notice is a reminder**: `ReminderType::Notice`, carried in the owner's one daily digest —
+  first in it, with its own subject ("A page you own will change unless you review it"), naming
+  the action and the day ("Lifecycle will unpublish it on or after 19 Sep 2026") and saying that a
+  review, even to say the page is still current, stops it. Migration 000700 adds `action` to
+  `lifecycle_notifications` so the row says which action was noticed; `Expiry\NoticesSent` reads
+  them back for the period. The reminder planner ignores notice rows (tested), so a notice never
+  silences an overdue reminder.
+- `Candidate` now carries `dueAt`, the review date the action is about — the cycle a notice is
+  counted in. `ActionType::label()` is a verb phrase with its object ("unpublish it", "show a banner
+  on it") so any sentence built from it reads right; the first cut said "will show a banner it".
+- The expire command (task 7) will feed `toNotify` into the Notifier and act only on `allowed`.
+- Verified on the host: the migration applied; a notice went through the real digest with the
+  right sentence; the verdict is *waiting until the 19th* today and in six days, *allowed* in seven.

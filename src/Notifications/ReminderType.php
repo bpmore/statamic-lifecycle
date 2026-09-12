@@ -18,4 +18,11 @@ enum ReminderType: string
 
     /** To somebody other than the owner, once the owner has had long enough. */
     case Escalation = 'escalation';
+
+    /**
+     * That a particular action will be taken on a date unless the page is
+     * reviewed first. The mandatory notice period (spec §6) is counted from
+     * this, per action.
+     */
+    case Notice = 'notice';
 }

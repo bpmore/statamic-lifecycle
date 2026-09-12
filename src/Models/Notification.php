@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Bpmore\StatamicLifecycle\Models;
 
+use Bpmore\StatamicLifecycle\Expiry\ActionType;
 use Bpmore\StatamicLifecycle\Notifications\ReminderType;
 use Bpmore\StatamicLifecycle\Storage\LifecycleDatabase;
 use Illuminate\Database\Eloquent\Model;
@@ -18,6 +19,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $id
  * @property string $entry_id
  * @property ReminderType $type
+ * @property ActionType|null $action
  * @property int|null $days_before
  * @property \DateTimeImmutable|null $due_at
  * @property string $recipient
@@ -45,6 +47,7 @@ class Notification extends Model
     {
         return [
             'type' => ReminderType::class,
+            'action' => ActionType::class,
             'days_before' => 'integer',
             'due_at' => 'immutable_datetime',
             'sent_at' => 'immutable_datetime',

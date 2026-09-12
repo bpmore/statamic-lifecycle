@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Bpmore\StatamicLifecycle\Notifications;
 
+use Bpmore\StatamicLifecycle\Expiry\ActionType;
 use DateTimeImmutable;
 
-/** One row of lifecycle_notifications, as the planner reads it. */
+/** One row of lifecycle_notifications, as the planner and the notice period read it. */
 final readonly class SentReminder
 {
     public function __construct(
@@ -16,5 +17,6 @@ final readonly class SentReminder
         public ?DateTimeImmutable $dueAt,
         public DateTimeImmutable $sentAt,
         public string $recipient = '',
+        public ?ActionType $action = null,
     ) {}
 }

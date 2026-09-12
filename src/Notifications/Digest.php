@@ -36,8 +36,13 @@ final readonly class Digest
 
     public function subject(): string
     {
+        $notices = count($this->of(ReminderType::Notice));
         $escalated = count($this->of(ReminderType::Escalation));
         $overdue = count($this->of(ReminderType::Overdue));
+
+        if ($notices > 0) {
+            return trans_choice('{1}A page you own will change unless you review it|[2,*]:count pages you own will change unless you review them', $notices, ['count' => $notices]);
+        }
 
         if ($escalated > 0 && $escalated === $this->count()) {
             return trans_choice('{1}An overdue page has been escalated to you|[2,*]:count overdue pages have been escalated to you', $escalated, ['count' => $escalated]);

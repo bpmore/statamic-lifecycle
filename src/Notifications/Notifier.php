@@ -72,6 +72,8 @@ final class Notifier
                     type: $reminder->type,
                     daysBefore: $reminder->daysBefore,
                     ownerName: $ownerName,
+                    action: $reminder->action,
+                    actionableFrom: $reminder->actionableFrom,
                 );
                 $kept[] = $reminder;
             }
@@ -80,8 +82,8 @@ final class Notifier
                 continue;
             }
 
-            // Overdue first, then due today, then due soon; nearest date first within each.
-            $order = [ReminderType::Escalation->value => 0, ReminderType::Overdue->value => 0, ReminderType::Due->value => 1, ReminderType::DueSoon->value => 2];
+            // What is about to happen first, then overdue, due today, due soon; nearest date first within each.
+            $order = [ReminderType::Notice->value => 0, ReminderType::Escalation->value => 1, ReminderType::Overdue->value => 1, ReminderType::Due->value => 2, ReminderType::DueSoon->value => 3];
             usort($items, fn (DigestItem $a, DigestItem $b): int => [$order[$a->type->value], $a->dueAt] <=> [$order[$b->type->value], $b->dueAt]);
 
             $digests[] = new Digest((string) $recipientId, $user->name() ?: $email, $email, $items, $kept);
@@ -190,6 +192,7 @@ final class Notifier
             $rows[] = [
                 'entry_id' => $reminder->entryId,
                 'type' => $reminder->type->value,
+                'action' => $reminder->action?->value,
                 'days_before' => $reminder->daysBefore,
                 'due_at' => $reminder->dueAt->format('Y-m-d H:i:s'),
                 'recipient' => $digest->recipientId,

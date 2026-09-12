@@ -28,6 +28,7 @@ class DigestMail extends Mailable
             markdown: 'lifecycle::mail.digest',
             with: [
                 'digest' => $this->digest,
+                'notices' => $this->digest->of(ReminderType::Notice),
                 'escalated' => $this->digest->of(ReminderType::Escalation),
                 'overdue' => $this->digest->of(ReminderType::Overdue),
                 'dueToday' => $this->digest->of(ReminderType::Due),

@@ -194,6 +194,10 @@ return [
     | The daily cap is the most automated actions in a day, site-wide, every
     | kind but a restore. What it holds back is done on a later day.
     |
+    | The notice period is how many days the owner is told before an action
+    | happens — in their digest, naming the action and the date. Never the
+    | same run, whatever the number: 0 still means the next day.
+    |
     */
 
     'expiry' => [
@@ -204,6 +208,8 @@ return [
         ],
 
         'daily_cap' => 25,
+
+        'notice_days' => 7,
 
         'alert_to' => [
             // 'web@example.edu',

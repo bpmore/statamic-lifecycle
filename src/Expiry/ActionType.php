@@ -19,13 +19,14 @@ enum ActionType: string
     /** Undoes one of the above. Never refused by the rails: a way back is not a risk. */
     case Restore = 'restore';
 
+    /** As a verb phrase with its object, so "Lifecycle will …" reads right. */
     public function label(): string
     {
         return match ($this) {
-            self::Banner => __('show a banner'),
-            self::Noindex => __('hide from search engines'),
-            self::Unpublish => __('unpublish'),
-            self::Restore => __('restore'),
+            self::Banner => __('show a banner on it'),
+            self::Noindex => __('hide it from search engines'),
+            self::Unpublish => __('unpublish it'),
+            self::Restore => __('put it back'),
         };
     }
 }

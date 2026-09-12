@@ -3,7 +3,17 @@
 
 Hello {{ $digest->recipientName }},
 
-@php($own = $digest->count() - count($escalated))
+@php($own = $digest->count() - count($escalated) - count($notices))
+@if (count($notices))
+## Unless reviewed, these pages will change ({{ count($notices) }})
+
+Their collections have chosen what happens to a page that stays overdue. Reviewing a page — even to say it is still current — stops this.
+
+@foreach ($notices as $item)
+- **{{ $item->title }}** — {{ $item->collection }} — Lifecycle will {{ $item->action?->label() }} on or after {{ $item->actionableFrom?->format('j M Y') }}@if ($item->editUrl) — [Review it]({{ $item->editUrl }})@endif
+
+@endforeach
+@endif
 @if ($own > 0)
 You are the content owner of {{ $own === 1 ? 'a page' : $own.' pages' }} that {{ $own === 1 ? 'needs' : 'need' }} a person to confirm {{ $own === 1 ? 'it is' : 'they are' }} still accurate. Open a page, read it, and press **Mark reviewed** in the sidebar — it takes a minute, and the record is what an auditor asks for.
 
