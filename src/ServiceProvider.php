@@ -141,6 +141,10 @@ class ServiceProvider extends AddonServiceProvider
             (array) $app['config']->get('lifecycle.expiry.never_touch', []),
         ));
 
+        $this->app->bind(Expiry\NavigationCheck::class, fn ($app): Expiry\NavigationCheck => Expiry\NavigationCheck::fromConfig(
+            (array) $app['config']->get('lifecycle.expiry', []),
+        ));
+
         $this->app->singleton(StateRecomputer::class, fn ($app): StateRecomputer => new StateRecomputer(
             $app->make(Storage\StateStore::class),
             $app->make(State\StateComputer::class),

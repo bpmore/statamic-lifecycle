@@ -40,7 +40,7 @@
 - [x] Daily action cap (default 25)
 - [x] Mandatory notice period
 - [x] Never-touch list
-- [ ] Navigation-reference check before unpublish
+- [x] Navigation-reference check before unpublish
 - [ ] Action log with `previous_state` + one-click revert
 - [ ] `lifecycle:expire --dry-run` (documented as the first step)
 - [ ] Only then: banner variable, noindex, unpublish — all off by default, opt-in per collection
@@ -667,3 +667,21 @@
   site wants unpublished by a scheduler. A site that means it can remove it.
 - Verified on the host: the home page is kept out by the default pattern; listing the `pages`
   collection keeps it out by that rule instead, and the reason says which.
+
+### 2026-09-11 — The navigation check
+- **Rail 5, pure**: `Expiry\NavigationCheck::check(candidates, references, allowedThisRun)` refuses
+  to *unpublish* a page any navigation links to, naming every navigation that does ("linked from
+  the [Main navigation] navigation and the [Footer] navigation; unpublishing it would break the
+  menu. Allow it explicitly to go ahead."). Banner and noindex pass — the link still works — and
+  so does a restore. The override is by entry: `expiry.unpublish_in_navigation` in config, or an
+  allowance for one run that the expire command will take on the command line.
+- `Expiry\NavigationReferences::for(ids)` reads every navigation's tree in every site in one pass
+  (a menu is small; a run is not), at any depth, ignoring nodes that are not entries, and names the
+  site when a navigation has more than one tree. In Statamic 6 a nav has no configured site list —
+  it is in a site by having a tree there; `sites()` is derived, not set.
+- The rails' verdict shape is now one class, `RailVerdict` (allowed + refusals with reasons); the
+  never-touch list uses it too.
+- Not covered, deliberately: a page's place in its own *collection's* tree. Unpublishing a parent
+  there does not restructure anything or break links the way a menu does; children keep rendering.
+- The host has no navigations, so it can only confirm "none → nothing linked"; the real-nav cases
+  (depth, two navs, a tree per site) are in the suite.

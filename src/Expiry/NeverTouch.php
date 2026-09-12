@@ -62,7 +62,7 @@ final readonly class NeverTouch
      * @param  list<Candidate>  $candidates
      * @param  array<string, string|null>  $uris  entry ID => site-relative URI, for the URL patterns
      */
-    public function check(array $candidates, array $uris = []): TouchVerdict
+    public function check(array $candidates, array $uris = []): RailVerdict
     {
         $allowed = [];
         $refused = [];
@@ -79,7 +79,7 @@ final readonly class NeverTouch
             }
         }
 
-        return new TouchVerdict($allowed, $refused);
+        return new RailVerdict($allowed, $refused);
     }
 
     /** Why this page is on the list, or null when it is not. */

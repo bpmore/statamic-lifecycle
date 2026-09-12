@@ -202,6 +202,10 @@ return [
     | collection handle, by URL pattern (`*` stands for anything: `/legal/*`),
     | or by entry ID. The home page and the legal pages belong here.
     |
+    | A page a navigation links to is never unpublished unless it is named in
+    | `unpublish_in_navigation` — or allowed for one run on the command line.
+    | A menu that quietly leads to a 404 is the failure this prevents.
+    |
     */
 
     'expiry' => [
@@ -221,6 +225,10 @@ return [
                 '/',
             ],
             'entries' => [],
+        ],
+
+        'unpublish_in_navigation' => [
+            // 'an-entry-id',
         ],
 
         'alert_to' => [
