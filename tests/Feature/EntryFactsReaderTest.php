@@ -124,6 +124,9 @@ it('lets a localisation inherit its origin\'s owner until it sets its own', func
 });
 
 it('resolves the computer from the container with the site\'s policy', function () {
+    // The owner of last resort has to be a real person: the policy only
+    // sees fallbacks that resolve to a user.
+    User::make()->id('webmaster')->email('web@example.edu')->save();
     config([
         'lifecycle.intervals.default' => 'quarterly',
         'lifecycle.intervals.collections' => ['pages' => 'monthly'],

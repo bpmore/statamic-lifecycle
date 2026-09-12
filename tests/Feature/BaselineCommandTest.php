@@ -247,7 +247,7 @@ it('warns when pages would have nobody and no owner of last resort is named', fu
     // One phrase per line: Laravel's expectsOutputToContain satisfies only
     // the first matching expectation for each line written.
     $this->artisan('lifecycle:baseline', ['--dry-run' => true])
-        ->expectsOutputToContain('1 entry has nobody to remind. Name an owner of last resort under owners.fallback')
+        ->expectsOutputToContain('1 entry has nobody to remind. Name an owner of last resort in Lifecycle\'s settings')
         ->assertExitCode(0);
 });
 

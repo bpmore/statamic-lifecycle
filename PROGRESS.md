@@ -27,7 +27,7 @@
 - [x] Assign by collection / blueprint / author / taxonomy term
 - [x] CSV import (URL or entry ID → owner)
 - [x] Bulk action in the CP listing
-- [ ] Owner-of-last-resort per site
+- [x] Owner-of-last-resort per site
 
 ## Phase 5 — Notifications
 - [ ] Configurable schedule (30 / 7 / 0 / overdue)
@@ -484,3 +484,31 @@
 - Statamic's CP middleware refuses more than one user without Pro, so any CP test with several
   users sets `statamic.editions.pro`.
 - Verified on the host: offered in bulk next to `publish`/`unpublish`/`mark_reviewed`; ran; idempotent.
+
+### 2026-09-11 — Owner of last resort per site
+- **The addon's first settings screen** (Addons → Lifecycle → Settings), via Statamic 6's
+  `registerSettingsBlueprint`: `Settings\SettingsBlueprint` builds one `users` field per site when
+  asked (labelled with the site's name only when there are several). Statamic stores the choice in
+  `resources/addons/lifecycle.yaml` — in the site's repository, next to config, which is where a
+  decision like this belongs. Phase 5–7 configuration can join this screen.
+- **Two sources, one answer**: `Owners\FallbackOwners::configured()` merges `owners.fallback` from
+  config (a site → user map, or one ID for every site) with the settings, settings winning per
+  site; `resolved()` keeps only people who still exist and `missing()` names the ones who have
+  left. The pure `Policy` is built from `resolved()`, so the computer never resolves a page to
+  someone who is gone; the baseline warns "[id] is no longer a user" per site. Saving settings
+  forgets the Policy/StateComputer/StateRecomputer singletons so a long-running worker sees the
+  change without a restart (tested: the policy reflects a save at once).
+- **Statamic bug, worked around**: `FileSettings::path()` saves to `resources/addons/<slug>.yaml`
+  but `FileSettingsRepository::find()` reads `resources/addons/<package suffix>.yaml`, so for any
+  addon whose `extra.statamic.slug` is not its package name's second half — ours: `lifecycle` vs
+  `statamic-lifecycle` — every save is lost on the next read. `Settings\SettingsRepository` finds by
+  slug and is bound over Statamic's in `bootAddon()`. **To report upstream** (statamic/cms 6.32,
+  `src/Addons/FileSettingsRepository.php:14`); remove the override when fixed. The sibling would
+  hit it too if it used settings.
+- Verified on the host: the settings screen renders (HTTP 200 as the real user through the kernel),
+  a save writes the file, the policy picks it up, and an ownerless page computes to the owner of
+  last resort with source `fallback`.
+- Seen on the way, not ours: the sibling A11y Docs addon's `EntrySaving` listener throws when its
+  own tables are not installed on the host, which blocks any entry save there. Worth telling it.
+- **Phase 4 is complete.** Owners can be assigned by branch, collection, blueprint, author, term,
+  CSV, and from the listing; and nothing is ownerless.

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Bpmore\StatamicLifecycle;
 
 use Illuminate\Console\Scheduling\Schedule;
+use Statamic\Contracts\Addons\SettingsRepository as SettingsRepositoryContract;
+use Statamic\Events\AddonSettingsSaved;
 use Statamic\Events\EntryBlueprintFound;
 use Statamic\Events\EntryDeleted;
 use Statamic\Providers\AddonServiceProvider;
@@ -56,6 +58,25 @@ class ServiceProvider extends AddonServiceProvider
         // merged config.
         $this->app->make(Storage\LifecycleDatabase::class)->defineDefaultConnection();
 
+        // Addons → Lifecycle → Settings. Built when asked for, so it can list
+        // the sites the site has.
+        $this->registerSettingsBlueprint(fn (): array => Settings\SettingsBlueprint::contents());
+
+        // Bound here, after Statamic's own binding: Statamic saves settings by
+        // slug and reads them by package name, and ours differ. See the class.
+        $this->app->bind(SettingsRepositoryContract::class, Settings\SettingsRepository::class);
+
+        // The policy is built once per process from config and settings. When
+        // the settings change, the next thing to ask gets a fresh one — which
+        // matters under a long-running worker, not just in a test.
+        $this->app['events']->listen(AddonSettingsSaved::class, function (AddonSettingsSaved $event): void {
+            if ($event->settings->addon()->id() === Owners\FallbackOwners::PACKAGE) {
+                $this->app->forgetInstance(State\Policy::class);
+                $this->app->forgetInstance(State\StateComputer::class);
+                $this->app->forgetInstance(StateRecomputer::class);
+            }
+        });
+
         // Deliberately not loadMigrationsFrom: that would run these against the
         // app's default connection under `php please migrate` while
         // `lifecycle:install` runs them against the configured one, and the two
@@ -72,9 +93,17 @@ class ServiceProvider extends AddonServiceProvider
         // The site's rules, read once from config. Everything that computes
         // state gets the same policy, so two screens cannot disagree about
         // what "due soon" means.
-        $this->app->singleton(State\Policy::class, fn ($app): State\Policy => State\Policy::fromConfig(
-            (array) $app['config']->get('lifecycle', []),
-        ));
+        // The owner of last resort comes from config and the settings screen,
+        // resolved to people who still exist, before the policy — which is
+        // pure and knows nothing of users — is built from it.
+        $this->app->singleton(State\Policy::class, function ($app): State\Policy {
+            $config = (array) $app['config']->get('lifecycle', []);
+            $config['owners'] = array_merge((array) ($config['owners'] ?? []), [
+                'fallback' => $app->make(Owners\FallbackOwners::class)->resolved(),
+            ]);
+
+            return State\Policy::fromConfig($config);
+        });
 
         $this->app->singleton(State\StateComputer::class, fn ($app): State\StateComputer => new State\StateComputer(
             $app->make(State\Policy::class),

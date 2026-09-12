@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Bpmore\StatamicLifecycle\Commands;
 
 use Bpmore\StatamicLifecycle\Entries\EntryFactsReader;
+use Bpmore\StatamicLifecycle\Owners\FallbackOwners;
 use Bpmore\StatamicLifecycle\State\BaselineCandidate;
 use Bpmore\StatamicLifecycle\State\BaselinePlanner;
 use Bpmore\StatamicLifecycle\State\EntryFacts;
@@ -50,6 +51,7 @@ class BaselineLifecycle extends Command
         StateStore $store,
         StateComputer $computer,
         Policy $policy,
+        FallbackOwners $fallbackOwners,
         EntryFactsReader $reader,
         BaselinePlanner $planner,
     ): int {
@@ -170,7 +172,7 @@ class BaselineLifecycle extends Command
             $states[] = [$computer->compute($entryFacts, $prior, $now), $date];
         }
 
-        $this->printOwners(array_column($states, 0), $policy);
+        $this->printOwners(array_column($states, 0), $policy, $fallbackOwners);
 
         // ---- Apply --------------------------------------------------------
 
@@ -200,7 +202,7 @@ class BaselineLifecycle extends Command
      *
      * @param  list<LifecycleState>  $states
      */
-    private function printOwners(array $states, Policy $policy): void
+    private function printOwners(array $states, Policy $policy, FallbackOwners $fallbackOwners): void
     {
         $assigned = $inferred = $fallback = $nobody = 0;
         $inferredTo = [];
@@ -227,10 +229,19 @@ class BaselineLifecycle extends Command
         $this->components->twoColumnDetail('  the owner of last resort', number_format($fallback));
         $this->components->twoColumnDetail('  nobody', number_format($nobody));
 
+        foreach ($fallbackOwners->missing() as $site => $id) {
+            $this->newLine();
+            $this->components->warn(sprintf(
+                'The owner of last resort for the [%s] site, [%s], is no longer a user. Choose another in Lifecycle\'s settings (Addons → Lifecycle).',
+                $site,
+                $id,
+            ));
+        }
+
         if ($nobody > 0 && $policy->fallbackOwners === []) {
             $this->newLine();
             $this->components->warn(sprintf(
-                '%s %s nobody to remind. Name an owner of last resort under owners.fallback in config/lifecycle.php so nothing is ownerless.',
+                '%s %s nobody to remind. Name an owner of last resort in Lifecycle\'s settings (Addons → Lifecycle), or under owners.fallback in config/lifecycle.php, so nothing is ownerless.',
                 number_format($nobody),
                 $nobody === 1 ? 'entry has' : 'entries have',
             ));

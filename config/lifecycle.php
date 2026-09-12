@@ -76,8 +76,10 @@ return [
     | guess dressed up as a fact. `lifecycle:baseline` warns when one person
     | would be inferred for most of the site.
     |
-    | 'fallback' names the owner-of-last-resort per site, by user ID, so that
-    | nothing is ever ownerless.
+    | 'fallback' names the owner-of-last-resort per site, by user ID — or one
+    | ID for every site — so that nothing is ever ownerless. The settings
+    | screen in the control panel (Addons → Lifecycle) can name them too, and
+    | wins per site; a person named in either who has since left is not used.
     |
     */
 
@@ -90,7 +92,7 @@ return [
         ],
 
         'fallback' => [
-            // 'default' => 'a-user-id',
+            // 'default' => 'a-user-id',   // or just 'a-user-id', for every site
         ],
 
     ],
