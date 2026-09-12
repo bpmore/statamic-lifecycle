@@ -64,6 +64,35 @@ Confirmed means a person named on the page, who still exists: an owner the
 addon inferred from the last author does not count, and neither does the owner
 of last resort.
 
+## On the front end
+
+A visible "Last reviewed" line is a small thing with outsized value: good for
+readers, good for search, and it shows the product's work to people who never
+open the control panel.
+
+```antlers
+<p>Last reviewed: {{ lifecycle:last_reviewed format="F Y" }}</p>
+
+{{ if {lifecycle:is_stale} }}
+  <p class="notice">This page is overdue for review and may be out of date.</p>
+{{ /if }}
+```
+
+`last_reviewed` and `next_review` take a `format`, and are empty when there is
+nothing to say — a page nobody has reviewed yet prints nothing rather than a
+date it cannot stand behind. `is_stale` is true when the page is overdue or
+expired. The pair gives a template everything at once:
+
+```antlers
+{{ lifecycle }}
+  {{ if stale }}…{{ /if }}
+  {{ status }} · reviewed {{ last_reviewed format="j F Y" }} by {{ last_reviewed_by }} · owner {{ owner }}
+{{ /lifecycle }}
+```
+
+The tags read; they never compute. A page Lifecycle does not track, or a site
+that has not run `lifecycle:install`, renders empty and never errors.
+
 ## Development
 
 The addon is developed on its own and linked into a host site through a Composer

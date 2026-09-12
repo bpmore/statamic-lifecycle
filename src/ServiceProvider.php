@@ -47,6 +47,10 @@ class ServiceProvider extends AddonServiceProvider
         Widgets\Lifecycle::class,
     ];
 
+    protected $tags = [
+        Tags\Lifecycle::class,
+    ];
+
     protected $routes = [
         'cp' => __DIR__.'/../routes/cp.php',
     ];

@@ -50,7 +50,7 @@
 - [x] Dashboard widget
 - [x] **Report a Freshness band to Site Weather.** One class implementing `Bpmore\SiteWeather\Contracts\WeatherContributor` (`key()` `freshness`, `label()` `Freshness`, `reading()`), tagged by name as `site-weather.contributors` in the provider's `register()` — Site Weather is a `suggest`, plus `require-dev` (path repository `../statamic-site-weather` until it is on Packagist). `reading()` reads stored results only — the share of tracked entries whose `EntryState` status is overdue or expired — never recomputes; asks whether the addon is set up before it reads; returns `Reading::unknown()` with a next-step headline when not set up or nothing measured; a measured state carries the latest `computed_at`; `url` is the lifecycle utility dashboard from the task above. Thresholds are this product's call. Follow `../statamic-a11y-docs/src/Weather/DocumentsContributor.php` and its test. Then drop the fake `freshness` band from `../statamic-dev/app/Providers/SiteWeatherDemoProvider.php` and confirm the real one on the dev-site tile.
 - [x] Gate: require owner + review date, opt-in and off by default
-- [ ] Antlers tags: `last_reviewed`, `is_stale`, `next_review`
+- [x] Antlers tags: `last_reviewed`, `is_stale`, `next_review`
 - [ ] Governance report export (reuse the tagged-PDF pipeline)
 - [ ] Permissions, with expiry configuration admin-only
 - [ ] README, listing copy, tag 1.0
@@ -881,3 +881,26 @@
 - Host side effects undone: the temporary `config/lifecycle.php` (gate on `pages`) deleted,
   temp user removed, config cache cleared. Migration 000900 stays applied. Someone else has
   added `dev-head`/`dev-staff`/`dev-super` users to the host meanwhile — left alone.
+
+### 2026-09-12 — Antlers tags
+- `Tags\Lifecycle`, handle `lifecycle`: `{{ lifecycle:last_reviewed format="F Y" }}`,
+  `{{ lifecycle:next_review }}`, `{{ if {lifecycle:is_stale} }}`, plus `{{ lifecycle:status }}`
+  and the pair `{{ lifecycle }}…{{ /lifecycle }}` carrying `tracked`, `stale`, `status`,
+  `status_label`, `last_reviewed` (Carbon, so `format=` works in the template), `last_reviewed_by`,
+  `next_review`, `owner`. The single tags return formatted strings (site `date_format` by
+  default) and null when there is nothing to say, so `{{ if }}` works. `stale` is overdue or
+  expired — the computed status — distinct from `lifecycle_banner`, which is the expiry action's
+  flag on the entry.
+- **They read, once.** The page's entry is the cascade's `id` (a `Fields\Value` on a real render,
+  unwrapped) or `entry="…"`; one `lifecycle_states` row per request via `Blink::once`, however
+  many tags a template uses. Not installed / not tracked / unreachable → empty and false, with
+  the exception reported, never a front-end error.
+- **Test gotcha worth remembering**: `Antlers::parse()` is *untrusted* by default — it is how
+  Antlers-enabled fields are parsed — and in that mode no tag runs at all; every tag renders as
+  empty, silently, with a "Runtime Access Violation" in the log. Pass `trusted: true` to parse
+  as a template would. The same behaviour is a feature: a `{{ lifecycle:… }}` pasted into a bard
+  by an author prints nothing.
+- Verified on the host through tinker against the real home entry's augmented cascade: the
+  formatted line, the pair, and the untrusted case. Nothing on the host changed. The host's home
+  page names a reviewer/owner ID with no user behind it, so the tag prints the ID — as designed:
+  the name when there is one, the fact when there is not.
