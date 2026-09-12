@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Bpmore\StatamicLifecycle\Widgets;
 
+use Bpmore\StatamicLifecycle\Auth\Permissions;
 use Bpmore\StatamicLifecycle\Models\EntryState;
 use Bpmore\StatamicLifecycle\Models\Snapshot;
 use Bpmore\StatamicLifecycle\Reporting\Overview;
@@ -40,8 +41,6 @@ class Lifecycle extends Widget
             ]);
         }
 
-        $overview = app(Overview::class);
-        $statuses = $overview->statuses();
         $late = [Status::Overdue->value, Status::Expired->value];
 
         $mine = $user === null ? null : [
@@ -49,6 +48,26 @@ class Lifecycle extends Widget
             'due_soon' => EntryState::query()->where('owner_id', (string) $user->id())->where('status', Status::DueSoon->value)->count(),
         ];
 
+        // One's own numbers for everyone; the site's only for those who may
+        // see the whole site, the same rule as the dashboard behind the link.
+        if (! Permissions::mayView($user)) {
+            return VueComponent::render('lifecycle-widget', [
+                'title' => $this->config('title', __('Content review')),
+                'installed' => true,
+                'mine' => $mine,
+                'site' => null,
+                'trend' => [],
+                'change' => null,
+                'since' => null,
+                'days' => 30,
+                'dashboardUrl' => cp_route('lifecycle.mine'),
+                'mineUrl' => cp_route('lifecycle.mine'),
+                'overdueUrl' => null,
+            ]);
+        }
+
+        $overview = app(Overview::class);
+        $statuses = $overview->statuses();
         $trend = array_map(fn (Snapshot $s): array => ['day' => $s->day->format('Y-m-d'), 'late' => $s->late()], app(Snapshots::class)->last(30, $now));
         $lateNow = $statuses['overdue'] + $statuses['expired'];
 

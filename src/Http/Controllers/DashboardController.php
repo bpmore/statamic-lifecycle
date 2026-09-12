@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Bpmore\StatamicLifecycle\Http\Controllers;
 
+use Bpmore\StatamicLifecycle\Auth\Permissions;
 use Bpmore\StatamicLifecycle\Reporting\Overview;
 use Bpmore\StatamicLifecycle\Storage\LifecycleDatabase;
 use Inertia\Response;
@@ -18,6 +19,8 @@ class DashboardController extends CpController
 {
     public function index(LifecycleDatabase $database, Overview $overview): Response
     {
+        abort_unless(Permissions::mayView(User::current()), 403);
+
         $installed = $database->isInstalled();
 
         return inertia('lifecycle/Dashboard', [

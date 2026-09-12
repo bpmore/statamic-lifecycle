@@ -62,7 +62,7 @@ const changeText = computed(() => {
                         <Badge v-if="mine.due_soon" color="amber" :text="`${mine.due_soon.toLocaleString()} due soon`" />
                     </div>
                 </a>
-                <a :href="overdueUrl" class="block">
+                <a v-if="site" :href="overdueUrl" class="block">
                     <Text as="div" size="sm" variant="subtle">Whole site</Text>
                     <div class="flex items-baseline gap-2">
                         <span class="text-2xl font-semibold">{{ site.overdue.toLocaleString() }}</span>
@@ -71,7 +71,7 @@ const changeText = computed(() => {
                 </a>
             </div>
 
-            <div>
+            <div v-if="site">
                 <svg v-if="points" :viewBox="`0 0 ${width} ${height}`" :width="width" :height="height" role="img" :aria-label="`Overdue pages over the last ${days} days`" class="max-w-full">
                     <polyline :points="points" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
                 </svg>

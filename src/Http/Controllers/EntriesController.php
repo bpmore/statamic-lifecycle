@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Bpmore\StatamicLifecycle\Http\Controllers;
 
+use Bpmore\StatamicLifecycle\Auth\Permissions;
 use Bpmore\StatamicLifecycle\Reporting\EntryListing;
 use Bpmore\StatamicLifecycle\Reporting\Overview;
 use Bpmore\StatamicLifecycle\State\Status;
@@ -24,9 +25,12 @@ class EntriesController extends CpController
 {
     public function index(Request $request, LifecycleDatabase $database, EntryListing $listing): Response
     {
+        abort_unless(Permissions::mayView(User::current()), 403);
+
         return $this->render($request, $database, $listing, EntryListing::filtersFrom($request->all()), __('Content review'), false);
     }
 
+    /** One's own content needs no permission beyond being signed in. */
     public function mine(Request $request, LifecycleDatabase $database, EntryListing $listing): Response
     {
         $filters = EntryListing::filtersFrom($request->all());

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Bpmore\StatamicLifecycle\Actions;
 
+use Bpmore\StatamicLifecycle\Auth\Permissions;
 use Bpmore\StatamicLifecycle\Reviews\Outcome;
 use Bpmore\StatamicLifecycle\Reviews\RecordReview;
 use Statamic\Actions\Action;
@@ -34,14 +35,10 @@ class MarkReviewed extends Action
         return $items->every(fn ($item): bool => $this->visibleTo($item));
     }
 
-    /**
-     * Whoever may edit the page may attest to it, for now. Spec §8 names a
-     * separate `attest reviews` permission; that arrives with the rest of
-     * the permissions in Phase 7 and replaces this.
-     */
+    /** Spec §8's `attest reviews`, on a page the person can see. */
     public function authorize($user, $item): bool
     {
-        return $item instanceof Entry && (bool) $user?->can('edit', $item);
+        return $item instanceof Entry && Permissions::mayAttest($user, $item);
     }
 
     public function buttonText()

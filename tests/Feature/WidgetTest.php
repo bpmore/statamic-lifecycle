@@ -21,7 +21,7 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     Carbon::setTestNow('2026-09-12 10:00:00');
     Collection::make('pages')->save();
-    $this->alice = User::make()->id('alice')->email('alice@example.edu')->data(['name' => 'Alice Ahmed'])->save();
+    $this->alice = User::make()->id('alice')->email('alice@example.edu')->data(['name' => 'Alice Ahmed'])->makeSuper()->save();
     User::make()->id('bob')->email('bob@example.edu')->save();
 
     $row = function (string $id, string $status, ?string $owner) {

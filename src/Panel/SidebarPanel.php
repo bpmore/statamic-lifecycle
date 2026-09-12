@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Bpmore\StatamicLifecycle\Panel;
 
+use Bpmore\StatamicLifecycle\Auth\Permissions;
 use Bpmore\StatamicLifecycle\Blueprint\LifecycleFields;
 use Bpmore\StatamicLifecycle\Expiry\ActionLog;
 use Bpmore\StatamicLifecycle\Models\AutomatedAction;
@@ -62,9 +63,10 @@ final class SidebarPanel
             // back, if anything — and the one click that puts it back.
             'last_action' => $installed ? $this->lastAction($this->actions->outstanding($id)) : null,
             'outcomes' => Outcome::options(),
-            // Provisional, like the action's own rule: whoever may edit may attest.
-            'can_attest' => $user !== null && (bool) $user->can('edit', $entry),
-            'can_put_back' => $user !== null && (bool) $user->can('edit', $entry),
+            // The same rules the actions apply, so the button never offers
+            // what the action would refuse.
+            'can_attest' => Permissions::mayAttest($user, $entry),
+            'can_put_back' => Permissions::mayPutBack($user, $entry),
             'urls' => [
                 'attest' => cp_route('collections.entries.actions.run', ['collection' => $entry->collectionHandle()]),
                 'refresh' => cp_route('lifecycle.entries.status', ['entry' => $id]),

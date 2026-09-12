@@ -52,7 +52,7 @@
 - [x] Gate: require owner + review date, opt-in and off by default
 - [x] Antlers tags: `last_reviewed`, `is_stale`, `next_review`
 - [x] Governance report export (reuse the tagged-PDF pipeline)
-- [ ] Permissions, with expiry configuration admin-only
+- [x] Permissions, with expiry configuration admin-only
 - [ ] README, listing copy, tag 1.0
 
 ## Notes
@@ -933,3 +933,35 @@
 - Host: report run in all formats against the live tables; nothing on the host changed. Note
   the host's `composer update bpmore/statamic-lifecycle` also re-pinned two other path-repo
   siblings (delegated, lms) in the host lock — symlinks, no effect.
+
+### 2026-09-12 — Permissions
+- Four permissions in a `lifecycle` group, registered through `Permission::extend` and asked
+  about in exactly one place, `Auth\Permissions`, so the action, the panel button, the screen
+  and the widget cannot disagree: `view lifecycle` (dashboard, full list, the widget's site-wide
+  numbers and trend), `attest reviews` (Mark reviewed, on a page the person can see — an
+  attestation is in their own name and does not need edit rights), `assign owners` and
+  `configure expiry actions` (both on pages the person may edit, because both write the entry).
+  Flat, not nested under `view lifecycle`: an editor attesting their own pages must not need to
+  see the whole site.
+- **The provisional "may edit" rules are gone** from MarkReviewed, AssignOwner, PutBack and the
+  panel's `can_attest`/`can_put_back`. Super users pass everything through Statamic's own
+  `Gate::after`, as before.
+- **One's own content needs no permission**: "My content", the sidebar panel and the widget's
+  "Yours" stay open to anyone signed in. Without `view lifecycle` the nav's Lifecycle item
+  points at My content and has no children; the widget drops "Whole site" and the trend and its
+  title links to My content.
+- **Expiry configuration is admin-only by construction**: it lives in `config/lifecycle.php`,
+  which only a deploy changes, and nothing in the control panel edits it. `configure expiry
+  actions` therefore covers the one expiry thing the control panel can do — put an action back —
+  and its description says so, so a site does not grant it looking for a settings screen.
+- **`manage exemptions` is not registered.** There is no exemption feature yet (where an exemption
+  is recorded is still undecided — see the state computation notes), and a permission that
+  grants nothing is a lie in the roles screen. It arrives with the feature; the note is in
+  `Auth\Permissions` so it is not forgotten.
+- Tests use real roles through the real gate (`Role::make()->addPermission()->save()`, deleted
+  in `afterEach` — roles are not Stache items, so the harness does not clean them up). The nav
+  filter in the older test matched `/lifecycle` loosely and would also have caught Statamic's
+  own `addons/lifecycle/settings` item for a non-super user; the new test matches the two
+  routes exactly.
+- Verified on the host: the group and its four descriptions render on the Permissions screen
+  (headless Chrome, temp super user, removed afterwards); the rebuilt widget bundle published.

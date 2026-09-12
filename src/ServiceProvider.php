@@ -13,6 +13,8 @@ use Statamic\Events\EntryCreated;
 use Statamic\Events\EntryDeleted;
 use Statamic\Events\EntrySaving;
 use Statamic\Facades\CP\Nav;
+use Statamic\Facades\Permission;
+use Statamic\Facades\User;
 use Statamic\Providers\AddonServiceProvider;
 
 class ServiceProvider extends AddonServiceProvider
@@ -89,6 +91,7 @@ class ServiceProvider extends AddonServiceProvider
         // screen.
         Notifications\ReminderPreferences::register();
 
+        $this->bootPermissions();
         $this->bootNavigation();
 
         // Bound here, after Statamic's own binding: Statamic saves settings by
@@ -216,12 +219,49 @@ class ServiceProvider extends AddonServiceProvider
                 return;
             }
 
-            $nav->tools(__('Lifecycle'))
-                ->route('lifecycle.dashboard')
-                ->icon('history')
-                ->children(fn (): array => [
-                    Nav::item(__('My content'))->route('lifecycle.mine'),
-                ]);
+            // Someone who may see the whole site gets the dashboard with
+            // "My content" under it; everyone else gets their own content,
+            // which needs no permission, under the same name.
+            if (Auth\Permissions::mayView(User::current())) {
+                $nav->tools(__('Lifecycle'))
+                    ->route('lifecycle.dashboard')
+                    ->icon('history')
+                    ->children(fn (): array => [
+                        Nav::item(__('My content'))->route('lifecycle.mine'),
+                    ]);
+
+                return;
+            }
+
+            $nav->tools(__('Lifecycle'))->route('lifecycle.mine')->icon('history');
+        });
+    }
+
+    /**
+     * Four of spec §8's five permissions; see Auth\Permissions for the fifth.
+     * Flat, not nested: attesting one's own pages must not require seeing
+     * the whole site.
+     */
+    private function bootPermissions(): void
+    {
+        Permission::extend(function (): void {
+            Permission::group('lifecycle', __('Lifecycle'), function (): void {
+                Permission::register(Auth\Permissions::VIEW)
+                    ->label(__('View lifecycle'))
+                    ->description(__('See the review state of every page: the dashboard, the full list, and the site-wide numbers on the widget. Everyone signed in can see their own content.'));
+
+                Permission::register(Auth\Permissions::ATTEST_REVIEWS)
+                    ->label(__('Attest reviews'))
+                    ->description(__('Mark a page reviewed, putting their own name and the date on the record.'));
+
+                Permission::register(Auth\Permissions::ASSIGN_OWNERS)
+                    ->label(__('Assign owners'))
+                    ->description(__('Say who owns a page, singly or in bulk, on pages they may edit.'));
+
+                Permission::register(Auth\Permissions::CONFIGURE_EXPIRY)
+                    ->label(__('Configure expiry actions'))
+                    ->description(__('Put back what an automated expiry action changed. Turning actions on per collection is done in config/lifecycle.php by whoever deploys the site; keep this to administrators.'));
+            });
         });
     }
 

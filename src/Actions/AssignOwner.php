@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Bpmore\StatamicLifecycle\Actions;
 
 use Bpmore\StatamicLifecycle\Assignment\OwnerAssigner;
+use Bpmore\StatamicLifecycle\Auth\Permissions;
 use Exception;
 use Statamic\Actions\Action;
 use Statamic\Contracts\Entries\Entry;
@@ -33,14 +34,10 @@ class AssignOwner extends Action
         return $items->every(fn ($item): bool => $this->visibleTo($item));
     }
 
-    /**
-     * Whoever may edit the page may say who owns it, for now. Spec §8 names
-     * a separate `assign owners` permission; that arrives with the rest of
-     * the permissions in Phase 7 and replaces this.
-     */
+    /** Spec §8's `assign owners`, on a page the person may edit — it writes the entry. */
     public function authorize($user, $item): bool
     {
-        return $item instanceof Entry && (bool) $user?->can('edit', $item);
+        return $item instanceof Entry && Permissions::mayAssign($user, $item);
     }
 
     public function buttonText()

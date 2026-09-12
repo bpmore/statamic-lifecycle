@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Bpmore\StatamicLifecycle\Actions;
 
+use Bpmore\StatamicLifecycle\Auth\Permissions;
 use Bpmore\StatamicLifecycle\Expiry\ActionLog;
 use Exception;
 use Statamic\Actions\Action;
@@ -33,10 +34,10 @@ class PutBack extends Action
         return $items->every(fn ($item): bool => $this->visibleTo($item));
     }
 
-    /** Provisional, like the others, until Phase 7's permissions. */
+    /** Spec §8's `configure expiry actions`: undoing one is the control panel's part of it. */
     public function authorize($user, $item): bool
     {
-        return $item instanceof Entry && (bool) $user?->can('edit', $item);
+        return $item instanceof Entry && Permissions::mayPutBack($user, $item);
     }
 
     public function buttonText()

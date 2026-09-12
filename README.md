@@ -64,6 +64,22 @@ Confirmed means a person named on the page, who still exists: an owner the
 addon inferred from the last author does not count, and neither does the owner
 of last resort.
 
+## Permissions
+
+Four, in their own group on the Permissions screen:
+
+| | |
+|---|---|
+| **View lifecycle** | The dashboard, the full list, and the site-wide numbers on the widget. |
+| **Attest reviews** | Mark a page reviewed, in one's own name. |
+| **Assign owners** | Say who owns a page, on pages the person may edit. |
+| **Configure expiry actions** | Put back what an automated expiry action changed. Keep it to administrators. |
+
+Everyone signed in sees their own content — "My content", the sidebar panel,
+the widget's "Yours" — without any of them. Turning expiry actions on is done
+in `config/lifecycle.php`, by whoever deploys the site, and nowhere in the
+control panel.
+
 ## The governance report
 
 ```
