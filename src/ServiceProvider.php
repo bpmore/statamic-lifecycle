@@ -105,6 +105,12 @@ class ServiceProvider extends AddonServiceProvider
     {
         parent::register();
 
+        // Site Weather's tile, if it is installed. A tag is a string: tagging
+        // the class name instantiates nothing, so without Site Weather the
+        // class is never loaded and the interface it implements is never
+        // looked for.
+        $this->app->tag(Weather\FreshnessContributor::class, 'site-weather.contributors');
+
         // The site's rules, read once from config. Everything that computes
         // state gets the same policy, so two screens cannot disagree about
         // what "due soon" means.

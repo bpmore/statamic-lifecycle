@@ -48,7 +48,7 @@
 ## Phase 7 — Surfaces + ship
 - [x] Utility dashboards by collection / site / owner; "My content" view
 - [x] Dashboard widget
-- [ ] **Report a Freshness band to Site Weather.** One class implementing `Bpmore\SiteWeather\Contracts\WeatherContributor` (`key()` `freshness`, `label()` `Freshness`, `reading()`), tagged by name as `site-weather.contributors` in the provider's `register()` — Site Weather is a `suggest`, plus `require-dev` (path repository `../statamic-site-weather` until it is on Packagist). `reading()` reads stored results only — the share of tracked entries whose `EntryState` status is overdue or expired — never recomputes; asks whether the addon is set up before it reads; returns `Reading::unknown()` with a next-step headline when not set up or nothing measured; a measured state carries the latest `computed_at`; `url` is the lifecycle utility dashboard from the task above. Thresholds are this product's call. Follow `../statamic-a11y-docs/src/Weather/DocumentsContributor.php` and its test. Then drop the fake `freshness` band from `../statamic-dev/app/Providers/SiteWeatherDemoProvider.php` and confirm the real one on the dev-site tile.
+- [x] **Report a Freshness band to Site Weather.** One class implementing `Bpmore\SiteWeather\Contracts\WeatherContributor` (`key()` `freshness`, `label()` `Freshness`, `reading()`), tagged by name as `site-weather.contributors` in the provider's `register()` — Site Weather is a `suggest`, plus `require-dev` (path repository `../statamic-site-weather` until it is on Packagist). `reading()` reads stored results only — the share of tracked entries whose `EntryState` status is overdue or expired — never recomputes; asks whether the addon is set up before it reads; returns `Reading::unknown()` with a next-step headline when not set up or nothing measured; a measured state carries the latest `computed_at`; `url` is the lifecycle utility dashboard from the task above. Thresholds are this product's call. Follow `../statamic-a11y-docs/src/Weather/DocumentsContributor.php` and its test. Then drop the fake `freshness` band from `../statamic-dev/app/Providers/SiteWeatherDemoProvider.php` and confirm the real one on the dev-site tile.
 - [ ] Gate: require owner + review date, opt-in and off by default
 - [ ] Antlers tags: `last_reviewed`, `is_stale`, `next_review`
 - [ ] Governance report export (reuse the tagged-PDF pipeline)
@@ -817,3 +817,31 @@
   (another session added a `readability` widget to the same file meanwhile — left as found);
   the host's `STATAMIC_PRO_ENABLED=true` was already set by someone else and was not touched.
   Migration 000800 stays applied on the host, as any site gets on `lifecycle:install`.
+
+### 2026-09-12 — Report a Freshness band to Site Weather
+- `Weather\FreshnessContributor`, tagged by class name as `site-weather.contributors` in
+  `register()`. A tag is a string, so without Site Weather the class is never loaded and the
+  interface it implements is never looked for; Site Weather is a `suggest`, and a `require-dev`
+  through the `../statamic-site-weather` path repository so the tests run against the real
+  contract (`Contributors`, `Forecast`) rather than a stand-in.
+- **It reads and never recomputes**: `Overview::statuses()` (one grouped query) and the newest
+  `computed_at` in `lifecycle_states`. Not installed → unknown with "run php please
+  lifecycle:install"; nothing tracked → unknown with "run php please lifecycle:baseline";
+  everything exempt → unknown, because nothing is being measured.
+- **Thresholds, this product's call.** "Late" is overdue or expired; expired is past the expiry
+  line the site itself drew, so it weighs more: clear = nothing late; fair = under a tenth late
+  and nothing expired; overcast = a tenth late, or anything expired; rain = a quarter late, or
+  expired content on a site a tenth late; storm = half late, or expired across a tenth.
+- **Proportions are of content under review — tracked minus exempt.** A large archive the site
+  deliberately exempted would otherwise dilute the reading; the dashboard widget's "of N tracked"
+  still counts everything, which is the right number for that sentence. Headline is plain
+  words with the count: "41 of 1,240 entries overdue, 12 past expiry"; clear reads "Nothing
+  overdue across 1,240 entries".
+- Dev site: the fake `freshness` band is gone from `SiteWeatherDemoProvider`; the real one
+  reads "Freshness: clear — Nothing overdue across 1 entry" on the tile, dated to the last
+  recompute, linking to `/cp/lifecycle`. The tile's overall is still rain because of the
+  demo Structure band, which is another addon's to replace.
+- The user's Chrome had lost its CP session by this task, so the render fell back to the
+  temp-user + curl + headless Chrome pattern: DOM text and the Freshness link confirmed, no
+  console errors (a Licensing Alert modal covers the screenshot on a fresh session). Temp user
+  removed; the host's `STATAMIC_PRO_ENABLED=true` was set by someone else and left alone.
