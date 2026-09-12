@@ -103,14 +103,15 @@ it('gives lifecycle_reviews an append-only shape', function () {
 
 it('gives lifecycle_notifications what the digest needs to not repeat itself', function () {
     expect(Schema::getColumnListing('lifecycle_notifications'))->toEqualCanonicalizing([
-        'id', 'entry_id', 'type', 'recipient', 'sent_at',
+        'id', 'entry_id', 'type', 'days_before', 'due_at', 'recipient', 'sent_at',
     ]);
 
     $indexes = indexedColumns('lifecycle_notifications');
 
-    // "Was this entry already notified at this stage?" and "what has this
-    // person been sent, and when?"
+    // "Was this entry already notified at this stage, for this date?" and
+    // "what has this person been sent, and when?"
     expect($indexes)->toContain(['entry_id', 'type'])
+        ->and($indexes)->toContain(['entry_id', 'due_at'])
         ->and($indexes)->toContain(['recipient', 'sent_at']);
 });
 

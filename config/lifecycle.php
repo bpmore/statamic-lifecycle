@@ -114,6 +114,29 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Reminders
+    |--------------------------------------------------------------------------
+    |
+    | When an owner hears about a review, as days before the review date;
+    | 0 is the day itself. Ahead of the date only the latest stage to have
+    | begun is sent, once per review date. Once the date has passed, a
+    | reminder goes at once and then every `overdue_every` days — or once
+    | only, when that is 0.
+    |
+    | Reminders are digests: one email per person, whatever it lists.
+    |
+    */
+
+    'notifications' => [
+
+        'schedule' => [30, 7, 0],
+
+        'overdue_every' => 7,
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Recompute
     |--------------------------------------------------------------------------
     |

@@ -49,6 +49,7 @@ class ServiceProvider extends AddonServiceProvider
         Commands\BaselineLifecycle::class,
         Commands\RecomputeLifecycle::class,
         Commands\AssignOwner::class,
+        Commands\NotifyLifecycle::class,
     ];
 
     public function bootAddon(): void
@@ -107,6 +108,10 @@ class ServiceProvider extends AddonServiceProvider
 
         $this->app->singleton(State\StateComputer::class, fn ($app): State\StateComputer => new State\StateComputer(
             $app->make(State\Policy::class),
+        ));
+
+        $this->app->singleton(Notifications\Schedule::class, fn ($app): Notifications\Schedule => Notifications\Schedule::fromConfig(
+            (array) $app['config']->get('lifecycle.notifications', []),
         ));
 
         $this->app->singleton(StateRecomputer::class, fn ($app): StateRecomputer => new StateRecomputer(

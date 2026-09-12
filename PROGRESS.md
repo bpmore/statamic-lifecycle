@@ -30,7 +30,7 @@
 - [x] Owner-of-last-resort per site
 
 ## Phase 5 — Notifications
-- [ ] Configurable schedule (30 / 7 / 0 / overdue)
+- [x] Configurable schedule (30 / 7 / 0 / overdue)
 - [ ] **Digest by default, one email per recipient** — never one per entry
 - [ ] Escalation to fallback owner, then owner-of-last-resort
 - [ ] Quiet window; per-user frequency opt-out
@@ -512,3 +512,25 @@
   own tables are not installed on the host, which blocks any entry save there. Worth telling it.
 - **Phase 4 is complete.** Owners can be assigned by branch, collection, blueprint, author, term,
   CSV, and from the listing; and nothing is ownerless.
+
+### 2026-09-11 — Reminder schedule
+- **Pure again**: `Notifications\Schedule` (from `notifications.schedule`, a list of days before the
+  review date, 0 = the day itself; `overdue_every`, 0 = once) and `Notifications\ReminderPlanner`
+  — entries with due dates and recipients in, what has been sent in, today in, reminders out. 16
+  unit cases. `Notifications\Reminders` reads `lifecycle_states` (inside the horizon or past,
+  owner set, user-owned, not exempt) and `lifecycle_notifications` and hands over.
+- **The rules, decided here**: ahead of the date only the *latest stage to have begun* is owed — a
+  page baselined five days out gets the 7-day reminder, not the 30-day one 25 days late; each
+  stage once per cycle; once overdue a reminder at once, then every `overdue_every` days (default
+  7) so an owner is not told once and then never again — the digest keeps that to one email.
+- **A cycle is the review date the reminder was about.** Migration 000600 adds `due_at` and
+  `days_before` to `lifecycle_notifications`: the type alone cannot tell 30 days from 7, and
+  reminders about last year's date must not silence this year's. Read on the host through the
+  upgrade path ("Applied 1 new migration").
+- `lifecycle:notify --dry-run` prints the schedule and, per person, how many of each kind (`-v`
+  lists the entries) — the shape the digest will take. Without `--dry-run` it refuses, with exit 1
+  and "Sending is not built yet", rather than pretend; the digest task replaces that line and
+  schedules the command daily. Groups as owners are skipped for now (schema supports them, v1
+  offers users), as are pages with nobody to tell — the dashboard is where those show.
+- Verified on the host: nothing owed for a page due next year; with its date moved to five days
+  out, one `due_soon` (7-day stage) reminder to the owner.
