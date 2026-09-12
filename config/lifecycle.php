@@ -206,9 +206,17 @@ return [
     | `unpublish_in_navigation` — or allowed for one run on the command line.
     | A menu that quietly leads to a 404 is the failure this prevents.
     |
+    | 'collections' is the opt-in: which actions each collection allows on a
+    | page that has been overdue for `expired_after_days`. Before turning any
+    | on, run `php please lifecycle:expire --dry-run` and read what it says.
+    |
     */
 
     'expiry' => [
+
+        'collections' => [
+            // 'news' => ['banner' => true, 'noindex' => true, 'unpublish' => false],
+        ],
 
         'circuit_breaker' => [
             'max_share' => '10%',

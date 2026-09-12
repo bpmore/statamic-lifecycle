@@ -42,7 +42,7 @@
 - [x] Never-touch list
 - [x] Navigation-reference check before unpublish
 - [x] Action log with `previous_state` + one-click revert
-- [ ] `lifecycle:expire --dry-run` (documented as the first step)
+- [x] `lifecycle:expire --dry-run` (documented as the first step)
 - [ ] Only then: banner variable, noindex, unpublish — all off by default, opt-in per collection
 
 ## Phase 7 — Surfaces + ship
@@ -705,3 +705,28 @@
   page back, the toast showed, the block disappeared, the log shows the unpublish reverted by the
   clicker and the restore row. Host side effects undone (temp user, Pro flag, test rows).
 - `ActionLog` is the impure half of the rail; the purity check's exclusion list is now a pattern.
+
+### 2026-09-12 — lifecycle:expire --dry-run
+- **The opt-in**: `expiry.collections` — `'news' => ['banner' => true, 'noindex' => true,
+  'unpublish' => false]` or a plain list — read by `Expiry\EnabledActions`, all off by default,
+  ordered least to most drastic, `restore` not something to opt into. With nothing opted in the
+  command says so and that Lifecycle is notify-only until a collection does.
+- **`Expiry\ExpiryPlanner`** builds candidates (an `expired` row in an opted-in collection, one per
+  enabled action not already applied *this cycle* — applied or since put back: a change a person
+  undid is not made again until a review starts a new cycle) and runs the rails **in an order that
+  matters**: never-touch and navigation first (not candidates, so they count toward nothing), then
+  the breaker (before anyone is warned, so 400 owners are not told of an unpublish the breaker
+  would refuse), then the notice period (now / waiting / to notify), then the cap on what may
+  happen now. A page with nobody to notify can never pass the notice period and is reported, not
+  skipped. `ExpiryPlan` holds every bucket with its reasons.
+- **`lifecycle:expire --dry-run [--collection=] [--allow-nav=id…]`** prints the opt-ins, the count
+  of expired entries, and every bucket — would happen now, would notify (with the date it may act
+  from), waiting, held by the cap, kept out and why, refused by the breaker, nobody to notify —
+  naming each page by title and URI, and changes nothing and notifies nobody. Without `--dry-run`
+  it refuses with exit 1 until the actions exist (next task). README now leads its expiry section
+  with the dry run as the first step, and the config comment says the same.
+- Seen while testing: three-entry test collections trip the breaker at once (33% > 10%), which is
+  the rule working; the fixture stands it down except in the breaker's own test.
+- Host noise, not ours: the `pages` tree in the Stache has the draft handbook at the root and home
+  at `/home`, disagreeing with the tree file — a stale cache from another session's edits. It is
+  why the `/` never-touch pattern did not apply to home in the host dry run.

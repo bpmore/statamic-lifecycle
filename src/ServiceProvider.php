@@ -51,6 +51,7 @@ class ServiceProvider extends AddonServiceProvider
         Commands\RecomputeLifecycle::class,
         Commands\AssignOwner::class,
         Commands\NotifyLifecycle::class,
+        Commands\ExpireLifecycle::class,
     ];
 
     public function bootAddon(): void
@@ -143,6 +144,10 @@ class ServiceProvider extends AddonServiceProvider
         ));
 
         $this->app->bind(Expiry\NavigationCheck::class, fn ($app): Expiry\NavigationCheck => Expiry\NavigationCheck::fromConfig(
+            (array) $app['config']->get('lifecycle.expiry', []),
+        ));
+
+        $this->app->bind(Expiry\EnabledActions::class, fn ($app): Expiry\EnabledActions => Expiry\EnabledActions::fromConfig(
             (array) $app['config']->get('lifecycle.expiry', []),
         ));
 

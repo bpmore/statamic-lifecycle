@@ -16,6 +16,25 @@ stays out of it.
 > phase by phase and is not yet installable for use. This file will be rewritten
 > before 1.0.
 
+## Expiry actions: read the dry run first
+
+Lifecycle is notify-only until a collection opts into an action — a banner
+variable, a `noindex`, or unpublishing — and every action passes through six
+rails first: a circuit breaker on the share of a collection one run may touch,
+a daily cap, a mandatory notice period, a never-touch list, a navigation check,
+and a log with one-click revert.
+
+**Before turning anything on, and after any change to `config/lifecycle.php`,
+run the dry run and read it:**
+
+```
+php please lifecycle:expire --dry-run
+```
+
+It prints exactly what a real run would do — what would happen now, who would
+be notified, what is waiting, what was kept out and why — and changes nothing.
+If it surprises you, the config is wrong, not the content.
+
 ## Development
 
 The addon is developed on its own and linked into a host site through a Composer
