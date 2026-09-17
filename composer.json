@@ -27,7 +27,7 @@
         "symfony/process": "^7.0 || ^8.0"
     },
     "require-dev": {
-        "bpmore/statamic-site-weather": "@dev",
+        "bpmore/statamic-site-weather": "^1.0",
         "laravel/pint": "^1.18",
         "orchestra/testbench": "^10.8 || ^11.0",
         "pestphp/pest": "^3.0"
@@ -70,15 +70,5 @@
     },
     "suggest": {
         "bpmore/statamic-site-weather": "Shows a Freshness band on the Site Weather dashboard tile."
-    },
-    "repositories": [
-        {
-            "name": "bpmore-site-weather",
-            "type": "path",
-            "url": "../statamic-site-weather",
-            "options": {
-                "symlink": true
-            }
-        }
-    ]
+    }
 }

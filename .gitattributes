@@ -1,0 +1,11 @@
+# Left out of the archive Composer downloads: only the shipped addon goes to a site.
+/.agents        export-ignore
+/.claude        export-ignore
+/.github        export-ignore
+/.gitattributes export-ignore
+/tests          export-ignore
+/tools          export-ignore
+/PROGRESS.md    export-ignore
+/SPEC.md        export-ignore
+/LISTING.md     export-ignore
+/run-build.sh   export-ignore

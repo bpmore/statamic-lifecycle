@@ -11,6 +11,7 @@ use Bpmore\StatamicLifecycle\Reporting\Snapshots;
 use Bpmore\StatamicLifecycle\State\StateComputer;
 use Bpmore\StatamicLifecycle\Storage\StateStore;
 use DateTimeImmutable;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\LazyCollection;
 use Statamic\Facades\Entry;
@@ -125,7 +126,7 @@ final class StateRecomputer
         // The sweep is the last thing a run does, so the day's numbers are
         // taken here, once everything is up to date. A scoped run records
         // them too: the numbers are the whole site's whatever the scope.
-        app(Snapshots::class)->record(new DateTimeImmutable);
+        app(Snapshots::class)->record(Carbon::now()->toImmutable());
 
         return $removed;
     }
@@ -142,7 +143,7 @@ final class StateRecomputer
         $done = 0;
 
         foreach ($this->entries($site, $collection)->chunk($this->chunkSize) as $chunk) {
-            $written = $this->recompute(array_values($chunk->all()), new DateTimeImmutable);
+            $written = $this->recompute(array_values($chunk->all()), Carbon::now()->toImmutable());
             $done += $written;
 
             if ($onChunk !== null) {

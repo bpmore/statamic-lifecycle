@@ -7,7 +7,7 @@ namespace Bpmore\StatamicLifecycle\Assignment;
 use Bpmore\StatamicLifecycle\Blueprint\LifecycleFields;
 use Bpmore\StatamicLifecycle\Gate\PublishGate;
 use Bpmore\StatamicLifecycle\StateRecomputer;
-use DateTimeImmutable;
+use Illuminate\Support\Carbon;
 use Statamic\Contracts\Entries\Entry;
 
 /**
@@ -49,7 +49,7 @@ final class OwnerAssigner
         }
 
         if (! $dryRun && $assigned !== []) {
-            $this->recomputer->recompute($assigned, new DateTimeImmutable);
+            $this->recomputer->recompute($assigned, Carbon::now()->toImmutable());
         }
 
         return new Assignment($ownerId, $assigned, $unchanged, $dryRun);

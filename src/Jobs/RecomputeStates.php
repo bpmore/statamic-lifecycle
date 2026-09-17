@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Bpmore\StatamicLifecycle\Jobs;
 
 use Bpmore\StatamicLifecycle\StateRecomputer;
-use DateTimeImmutable;
 use Illuminate\Bus\Batchable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\Middleware\SkipIfBatchCancelled;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Carbon;
 
 /**
  * Recomputes one chunk of entries.
@@ -36,6 +36,6 @@ class RecomputeStates implements ShouldQueue
 
     public function handle(StateRecomputer $recomputer): void
     {
-        $recomputer->recompute($this->entryIds, new DateTimeImmutable);
+        $recomputer->recompute($this->entryIds, Carbon::now()->toImmutable());
     }
 }

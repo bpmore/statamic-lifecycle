@@ -4,6 +4,20 @@ What changed in each release, and what you have to do about it.
 
 Versions are `MAJOR.MINOR.PATCH`.
 
+## 1.0.1 — 2026-09-17
+
+Nothing to do on upgrade.
+
+- The nightly recompute, the queued recompute job and bulk owner assignment
+  now read the clock the same way as every other part of the addon, so a
+  site (or a test) that fakes the time gets the same answer from all of
+  them. Behaviour on a real clock is unchanged.
+- The Site Weather development dependency comes from Packagist rather than
+  a sibling folder, so a fresh clone installs and CI runs.
+- A support section in the README: GitHub issues.
+- Files that only matter for developing the addon (tests, tools, the build
+  notes) are left out of the Composer download.
+
 ## 1.0.0 — 2026-09-12
 
 The first release.

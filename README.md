@@ -107,6 +107,13 @@ is installed it reports a **Freshness** band to the dashboard tile.
 PHP 8.2+, Statamic 6. A database is optional. A browser (for the PDF export)
 is optional and degrades to a clear message rather than a failure.
 
+## Support
+
+Support is through [GitHub issues](https://github.com/bpmore/statamic-lifecycle/issues).
+Open one for a bug, a question, or something the documentation does not
+answer. Say which Statamic and Lifecycle versions you are on and, for a
+bug, what `lifecycle:report` or the dry run printed.
+
 ## Development
 
 The addon is developed on its own and linked into a host site through a Composer

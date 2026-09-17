@@ -18,7 +18,9 @@ use Statamic\Facades\YAML;
  * next read. This finds by the same slug the save used. Statamic's own
  * behaviour is kept for an addon it cannot find.
  *
- * Reported upstream; remove when Statamic reads by slug.
+ * Present in statamic/cms 6.33 (src/Addons/FileSettingsRepository.php,
+ * find() vs FileSettings::path()). Not yet reported upstream; remove the
+ * override when Statamic reads by slug.
  */
 final class SettingsRepository extends FileSettingsRepository
 {

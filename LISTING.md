@@ -130,6 +130,12 @@ accurate.
 Statamic 6, PHP 8.2+. A database is optional; a browser is optional for the
 PDF export.
 
+## Support
+
+GitHub issues: https://github.com/bpmore/statamic-lifecycle/issues. The
+repository is public from the day the listing is, so the link works for
+customers and the source can be read before buying.
+
 ## Suite positioning
 
 First of the governance family, beside the accessibility line:
