@@ -204,7 +204,7 @@ async function submit() {
                     <Text as="div" size="sm">
                         <span class="font-medium">{{ day(review.reviewed_at) }}</span>
                         · {{ review.reviewer_exists ? review.reviewer_name : `${review.reviewer_name} (no longer a user)` }}
-                        · {{ review.outcome_label }}
+                        · {{ review.outcome_label }}<span v-if="review.source === 'edit'"> · {{ review.source_label }}</span>
                     </Text>
                     <Text v-if="review.note" as="div" size="sm" variant="subtle">{{ review.note }}</Text>
                     <Text v-if="review.content_changed" as="div" size="sm" variant="subtle">The content had changed since the previous review.</Text>

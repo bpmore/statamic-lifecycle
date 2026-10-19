@@ -63,6 +63,7 @@ final class ReviewHistory
                 contentChanged: $row->content_changed,
                 revisionRef: $row->entry_revision_ref,
                 recordedAt: $row->created_at,
+                source: $row->source,
             );
         }
 

@@ -58,7 +58,7 @@
 ## Phase 8 — Spec gaps (a re-read of the spec against 1.0.1, 2026-10-19)
 - [x] Exemptions: a `review_exempt` field, *Exempt* / *Clear exemption* bulk actions, the `manage exemptions` permission (spec §3's `exempt` status, §8's bulk list and permissions)
 - [x] Bulk *Set interval* action in the CP listing (spec §8)
-- [ ] Editing counts as a review — a config option, default off (spec §11)
+- [x] Editing counts as a review — a config option, default off (spec §11)
 - [ ] `lifecycle:doctor`: install state, config validity, orphans, never-baselined count (spec §11)
 - [ ] A notice in the CP until baselining is complete, saying what happened and how to adjust (spec §2)
 - [ ] CHANGELOG, docs, tag 1.1.0
@@ -1056,3 +1056,29 @@
   null survives a save and reload. The exemption writer uses `false` for the same purpose.
 - 546 tests, Pint clean, no asset change. Host: the action is offered on the real entry with the
   seven options; a dry run names it and leaves the file untouched.
+
+### 2026-10-19 — Editing counts as a review (an option, off)
+- `reviews.editing_counts` (false). On, a person saving a published page in the control panel is
+  recorded through the same `RecordReview` as an attestation — outcome *I updated it*, no note —
+  with a new column saying where it came from: migration 001000 adds `lifecycle_reviews.source`
+  (`attestation` | `edit`, default attestation, so every existing row is what it was). The spec's
+  objection ("conflating the two destroys the value of the record") is met by never conflating
+  them: `ReviewSource` is on the record, the panel's history line says "from an edit", and a site
+  that turns it on knows what it chose. Applied on the host ("Applied 1 new migration").
+- **What does not count** (`Listeners\RecordEditAsReview`, each tested): a draft; nobody signed in
+  (an import, a command); the addon's own writes (`PublishGate::isSuspended()`, the same guard the
+  gate uses — assigning forty owners is not forty reviews by whoever ran it); a save that would
+  not change the file; and a second save by the same person on the same page the same day (one
+  review a day; ten saves are one edit). An attestation the same day does not block an edit from
+  counting — only an earlier *edit* by the same person does. Never breaks a save: wrapped, reported.
+- **"Nothing changed" cannot be read from `isDirty()`.** Statamic's `Entry::save()` calls
+  `Entry::find($this->id())` to learn whether the entry is new, the Stache hands back the same
+  object, and `BasicStore` syncs its original state on the way — so the entry is clean at
+  `EntrySaving` as well as at `EntrySaved` (probed; two scratch runs). Instead the listener
+  compares `fileContents()` with the file on disk at `EntrySaving` (`@noteDirty`, listed first so
+  the note is taken even when the gate then refuses), keeps the answer in a `WeakMap` per entry
+  object, and reads it at `EntrySaved`. A new entry or one not kept in a file counts as changed.
+  Note that a control-panel save always stamps `updated_at`, so in practice "changed nothing" is
+  a programmatic re-save; the daily dedup is what bounds the CP case.
+- 554 tests, Pint clean, bundle rebuilt (`cp-DgIrjE7a.js`) and published to the host. The option
+  is off on the host; the column is there. Not exercised in a browser: a CP save with the option on.

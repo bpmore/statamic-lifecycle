@@ -77,7 +77,7 @@ it('gives lifecycle_reviews an append-only shape', function () {
     expect(Schema::getColumnListing('lifecycle_reviews'))->toEqualCanonicalizing([
         'id', 'entry_id', 'reviewed_by', 'reviewed_at',
         'outcome', 'note', 'content_changed', 'entry_revision_ref',
-        'created_at',
+        'source', 'created_at',
     ]);
 
     // No updated_at and no deleted_at: rows are written once. And no foreign

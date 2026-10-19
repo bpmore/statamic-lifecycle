@@ -63,6 +63,8 @@ This is the record people pay for. Dates and reminders are free-addon material; 
 
 Editing a page does not count as reviewing it. Somebody fixing a typo has not confirmed that the medical content is still accurate, and conflating the two would destroy the value of the record.
 
+A site that decides otherwise can set `reviews.editing_counts` to `true`. Saving a published page in the control panel is then recorded as that person reviewing it — outcome *I updated it*, once per person per page per day — and the record marks it *from an edit*, so an attestation is still an attestation. Drafts, saves that change nothing, saves with nobody signed in, and Lifecycle's own writes are never counted.
+
 ### The sidebar panel
 
 Under the four fields, a **Review** panel shows the page's status and next review date and why it is that date, the owner and how they came to be the owner, who last reviewed the page and when, the full history, the *Mark reviewed* button, and — when Lifecycle has changed the page — what it did and a button to put it back.
@@ -268,6 +270,7 @@ Publish the config with `php please vendor:publish --tag=lifecycle-config`. Ever
 | `owners.fallback` | `[]` | Owner of last resort, per site or one for all. The settings screen wins per site. |
 | `due_soon_days` | `30` | |
 | `expired_after_days` | `30` | Overdue this long is expired. |
+| `reviews.editing_counts` | `false` | Whether saving a published page counts as that person reviewing it. Recorded as from an edit. |
 | `notifications.schedule` | `[30, 7, 0]` | Days before the review date. |
 | `notifications.overdue_every` | `7` | Then every so many days; 0 for once only. |
 | `notifications.send_at` | `07:00` | `LIFECYCLE_SEND_AT`. |

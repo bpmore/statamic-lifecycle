@@ -114,6 +114,29 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | What counts as a review
+    |--------------------------------------------------------------------------
+    |
+    | By default, only a person pressing "Mark reviewed" does. Somebody fixing
+    | a typo has not confirmed the page is still accurate, and counting the
+    | save as a review would make the record say they had.
+    |
+    | A site that decides otherwise can turn `editing_counts` on: saving a
+    | published page in the control panel is then recorded as that person
+    | reviewing it, with the outcome "I updated it" and marked as coming from
+    | an edit — once per person per page per day. Attestations stay
+    | attestations; the record always says which is which.
+    |
+    */
+
+    'reviews' => [
+
+        'editing_counts' => false,
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Reminders
     |--------------------------------------------------------------------------
     |

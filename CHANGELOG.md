@@ -6,7 +6,9 @@ Versions are `MAJOR.MINOR.PATCH`.
 
 ## Unreleased
 
-Nothing to do on upgrade. The new field appears on its own, like the others.
+Run `php please lifecycle:install` after updating: one new migration (a
+`source` column on the review record). The new field appears on its own,
+like the others.
 
 - **Exemptions.** An *Exempt from review* toggle on every entry, and two
   entry actions, *Exempt from review* and *Clear exemption*, for one page or
@@ -16,6 +18,11 @@ Nothing to do on upgrade. The new field appears on its own, like the others.
 - **Set review interval** as an entry action in the listing, for one page or
   many: an interval, or the default for the collection. For whoever may edit
   the pages.
+- **Editing can count as a review**, if a site says so: `reviews.editing_counts`,
+  off by default. A save of a published page is then recorded as a review by
+  that person, outcome *I updated it*, marked *from an edit* so an attestation
+  stays an attestation. Once per person per page per day; never a draft, a
+  save with nothing changed, an import, or Lifecycle's own writes.
 
 ## 1.0.1 — 2026-09-17
 

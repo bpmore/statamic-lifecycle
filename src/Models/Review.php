@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Bpmore\StatamicLifecycle\Models;
 
 use Bpmore\StatamicLifecycle\Reviews\Outcome;
+use Bpmore\StatamicLifecycle\Reviews\ReviewSource;
 use Bpmore\StatamicLifecycle\Storage\LifecycleDatabase;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -22,6 +23,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $note
  * @property bool $content_changed
  * @property string|null $entry_revision_ref
+ * @property ReviewSource $source
  * @property \DateTimeImmutable $created_at
  */
 class Review extends Model
@@ -48,6 +50,7 @@ class Review extends Model
             'reviewed_at' => 'immutable_datetime',
             'created_at' => 'immutable_datetime',
             'outcome' => Outcome::class,
+            'source' => ReviewSource::class,
             'content_changed' => 'boolean',
         ];
     }

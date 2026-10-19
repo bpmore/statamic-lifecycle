@@ -27,6 +27,7 @@ final readonly class ReviewRecord
         public bool $contentChanged,
         public ?string $revisionRef,
         public DateTimeImmutable $recordedAt,
+        public ReviewSource $source = ReviewSource::Attestation,
     ) {}
 
     /** @return array<string, mixed> JSON-friendly, for the control panel and templates */
@@ -45,6 +46,8 @@ final readonly class ReviewRecord
             'content_changed' => $this->contentChanged,
             'revision_ref' => $this->revisionRef,
             'recorded_at' => $this->recordedAt->format(DATE_ATOM),
+            'source' => $this->source->value,
+            'source_label' => $this->source->label(),
         ];
     }
 }

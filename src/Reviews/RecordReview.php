@@ -34,8 +34,9 @@ final class RecordReview
 
     /**
      * @param  ?DateTimeImmutable  $at  when the review happened; now unless it is being recorded after the fact
+     * @param  ReviewSource  $source  an attestation unless the site counts edits, and this is one
      */
-    public function record(Entry $entry, string $reviewerId, Outcome $outcome, ?string $note = null, ?DateTimeImmutable $at = null): Review
+    public function record(Entry $entry, string $reviewerId, Outcome $outcome, ?string $note = null, ?DateTimeImmutable $at = null, ReviewSource $source = ReviewSource::Attestation): Review
     {
         $now = Carbon::now()->toImmutable();
         $at ??= $now;
@@ -56,6 +57,7 @@ final class RecordReview
             'note' => $this->tidy($note),
             'content_changed' => $contentChanged,
             'entry_revision_ref' => $this->revisionRef($entry),
+            'source' => $source,
             'created_at' => $now,
         ]);
 

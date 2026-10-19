@@ -11,6 +11,7 @@ use Statamic\Events\AddonSettingsSaved;
 use Statamic\Events\EntryBlueprintFound;
 use Statamic\Events\EntryCreated;
 use Statamic\Events\EntryDeleted;
+use Statamic\Events\EntrySaved;
 use Statamic\Events\EntrySaving;
 use Statamic\Facades\CP\Nav;
 use Statamic\Facades\Permission;
@@ -28,10 +29,16 @@ class ServiceProvider extends AddonServiceProvider
         ],
         // The gate, and the creation record it relies on.
         EntrySaving::class => [
+            // First, so the note is taken whether or not the gate refuses.
+            Listeners\RecordEditAsReview::class.'@noteDirty',
             Listeners\RefuseUnlessOwnedAndDated::class,
         ],
         EntryCreated::class => [
             Listeners\RecordEntryCreated::class,
+        ],
+        // Only where the site has said editing counts (reviews.editing_counts).
+        EntrySaved::class => [
+            Listeners\RecordEditAsReview::class,
         ],
     ];
 
