@@ -13,6 +13,9 @@ Nothing to do on upgrade. The new field appears on its own, like the others.
   many from the listing. An exempt page has no review date, gets no
   reminders, is never expired, and is counted as exempt. The gate asks an
   exempt page for an owner only. A new permission, *Manage exemptions*.
+- **Set review interval** as an entry action in the listing, for one page or
+  many: an interval, or the default for the collection. For whoever may edit
+  the pages.
 
 ## 1.0.1 — 2026-09-17
 

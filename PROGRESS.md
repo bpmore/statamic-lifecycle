@@ -57,7 +57,7 @@
 
 ## Phase 8 — Spec gaps (a re-read of the spec against 1.0.1, 2026-10-19)
 - [x] Exemptions: a `review_exempt` field, *Exempt* / *Clear exemption* bulk actions, the `manage exemptions` permission (spec §3's `exempt` status, §8's bulk list and permissions)
-- [ ] Bulk *Set interval* action in the CP listing (spec §8)
+- [x] Bulk *Set interval* action in the CP listing (spec §8)
 - [ ] Editing counts as a review — a config option, default off (spec §11)
 - [ ] `lifecycle:doctor`: install state, config validity, orphans, never-baselined count (spec §11)
 - [ ] A notice in the CP until baselining is complete, saying what happened and how to adjust (spec §2)
@@ -1037,3 +1037,22 @@
   and *Exempt* is offered on it, the five permissions list, a writer dry run names the entry and
   leaves the file untouched; the rebuilt assets `vendor:publish`ed. The panel's new line was not
   rendered in a browser this run — it is one conditional `<Text>` on an existing payload field.
+
+### 2026-10-19 — Set review interval
+- `Actions\SetInterval` (`set_interval`): a select of the default for the collection, the six
+  named intervals, and any the site added under `intervals.named` (so it offers what the sidebar
+  field accepts); the message names the interval in words. **No permission of its own**: the spec
+  names none, and the interval is a field an editor sets in the sidebar — this is the same edit
+  done forty times, so whoever may edit the pages may run it. (The same is true of the exemption
+  toggle: a field is a field; `manage exemptions` governs the bulk action because the spec says so.)
+- **Third copy, so the loop was pulled out**: `Assignment\EntryWriter::write(entries, alreadySo,
+  change, dryRun)` is now the one way the addon writes an authored field into entries — only what
+  changes, gate suspended, runner not stamped as last author, rows recomputed — and
+  `OwnerAssigner`, `ExemptionWriter` and the new `IntervalSetter` say only *what*. Their tests
+  pass unchanged.
+- **"The default" on a translation** is written as `review_interval: null` and kept in the file,
+  because `HasOrigin::value()` checks `has()`, not null — so a translation can have the default
+  while its original is quarterly. On an original the line is removed. Tested, including that the
+  null survives a save and reload. The exemption writer uses `false` for the same purpose.
+- 546 tests, Pint clean, no asset change. Host: the action is offered on the real entry with the
+  seven options; a dry run names it and leaves the file untouched.

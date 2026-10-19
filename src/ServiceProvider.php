@@ -38,6 +38,7 @@ class ServiceProvider extends AddonServiceProvider
     protected $actions = [
         Actions\MarkReviewed::class,
         Actions\AssignOwner::class,
+        Actions\SetInterval::class,
         Actions\Exempt::class,
         Actions\ClearExemption::class,
         Actions\PutBack::class,

@@ -84,7 +84,7 @@ php please lifecycle:assign --csv=owners.csv
 
 The CSV is the file a department sends back after being asked "who owns these pages?", so it forgives what such files have: a header row or none, a BOM, blank lines, whitespace, full URLs pasted from a browser. One row per entry — the entry as a URL, a URI or an ID; the owner as a user ID or an email — and `--owner=` for rows that name none. What it cannot resolve it reports by line number, and carries on.
 
-In the control panel, **Assign owner** is a bulk action on the entry listing: filter, select, assign.
+In the control panel, **Assign owner** is a bulk action on the entry listing: filter, select, assign. **Set review interval** sits beside it — pick the interval, or *the default for the collection* — for whoever may edit the pages; it is the same edit the sidebar field makes, done for a selection at once.
 
 Assigning writes to the entry, and on purpose: an owner is content. Each saved entry is a change like any other; it shows in git.
 
@@ -98,7 +98,7 @@ Like the owner, the exemption is written into the entry: it is a decision about 
 
 ## The screens
 
-**Lifecycle**, under Tools, is the utility screen: how much content is in what state, and the same by collection, by site and by owner, with a way into each list. The list filters by status, by collection, by site, by owner, and by what needs attention — never reviewed, no owner, owner inferred rather than confirmed — and each row links to the entry. *Mark reviewed*, *Assign owner*, *Exempt from review* and *Clear exemption* are Statamic entry actions: in the sidebar panel, and on the collection's own entry listing for one entry or many.
+**Lifecycle**, under Tools, is the utility screen: how much content is in what state, and the same by collection, by site and by owner, with a way into each list. The list filters by status, by collection, by site, by owner, and by what needs attention — never reviewed, no owner, owner inferred rather than confirmed — and each row links to the entry. *Mark reviewed*, *Assign owner*, *Set review interval*, *Exempt from review* and *Clear exemption* are Statamic entry actions: in the sidebar panel, and on the collection's own entry listing for one entry or many.
 
 **My content** is the same list for the person looking at it: the screen an owner actually lives in.
 
@@ -180,7 +180,7 @@ A refused save says what is missing, under the field where it is set, in plain w
 
 Confirmed means a person named on the page who still exists: an owner inferred from the last author does not count, the owner of last resort does not count, and a named owner who has since left gets their own line. A review date is either a review-by date or a review interval — both are the author saying when. A page exempt from review has answered "never", and needs only an owner.
 
-Lifecycle's own writes — assigning an owner, an exemption, an expiry flag, a put-back — go through the gate unchecked. Anything else that saves an entry with events on, an import script included, is refused like a person would be.
+Lifecycle's own writes — assigning an owner, an interval, an exemption, an expiry flag, a put-back — go through the gate unchecked. Anything else that saves an entry with events on, an import script included, is refused like a person would be.
 
 ## The governance report
 
