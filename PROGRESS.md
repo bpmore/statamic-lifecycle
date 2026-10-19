@@ -59,7 +59,7 @@
 - [x] Exemptions: a `review_exempt` field, *Exempt* / *Clear exemption* bulk actions, the `manage exemptions` permission (spec §3's `exempt` status, §8's bulk list and permissions)
 - [x] Bulk *Set interval* action in the CP listing (spec §8)
 - [x] Editing counts as a review — a config option, default off (spec §11)
-- [ ] `lifecycle:doctor`: install state, config validity, orphans, never-baselined count (spec §11)
+- [x] `lifecycle:doctor`: install state, config validity, orphans, never-baselined count (spec §11)
 - [ ] A notice in the CP until baselining is complete, saying what happened and how to adjust (spec §2)
 - [ ] CHANGELOG, docs, tag 1.1.0
 
@@ -1082,3 +1082,24 @@
   a programmatic re-save; the daily dedup is what bounds the CP case.
 - 554 tests, Pint clean, bundle rebuilt (`cp-DgIrjE7a.js`) and published to the host. The option
   is off on the host; the column is there. Not exercised in a browser: a CP save with the option on.
+
+### 2026-10-19 — lifecycle:doctor
+- `Doctor\Doctor::examine(now)` → a list of `Finding`s (ok / warn / fail, subject, detail, fix);
+  `lifecycle:doctor [--json]` prints them and exits 1 on a fail. Reads only. The four things the
+  spec named and the ones a person actually asks: tables and pending migrations (the upgrade
+  case this run's own migration created), the queue's batch table, intervals that resolve, expiry
+  opt-ins that are real actions, gate rules with a date, config naming collections the site does
+  not have, fallback owners and escalation contacts who have left, sites with no owner of last
+  resort, published entries with no row, orphan rows, never-baselined rows, ownerless rows, the
+  age of the last recompute (36 hours = the scheduler has stopped), a first snapshot, a browser
+  for the PDF. Each warning says the command to run.
+- **The recomputer is resolved lazily**, not injected: building it builds the policy, and a
+  policy that will not build is one of the doctor's findings, not a reason the doctor cannot
+  start. With a broken interval the content section says "not examined" and the run still exits.
+- Test harness note: the queue's `job_batches` table is not among our migrations, so the
+  "healthy site" case calls `ensureBatchTable()` first; and `--json` is one output line, so one
+  `expectsOutputToContain` per run (the known quirk).
+- Host run: 77 entries tracked, no orphans, all baselined; and three true warnings — no owner of
+  last resort on the dev site, two ownerless pages, and the last recompute 775 hours ago because
+  the dev site runs no scheduler. Exactly the kind of thing it exists to say.
+- 568 tests, Pint clean, no asset change.

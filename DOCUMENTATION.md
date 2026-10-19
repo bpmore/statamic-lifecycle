@@ -28,6 +28,8 @@ Install Lifecycle on a real institutional site and every page would instantly be
 
 Run it with `--dry-run` first: it prints the distribution and changes nothing.
 
+When something seems off later — nothing tracked, no reminders, a status that will not move — `php please lifecycle:doctor` checks the install, the config, the content and the scheduler in one run and says what to do about each thing it finds.
+
 ## The four fields
 
 Four fields appear in the sidebar of every entry blueprint on their own; nobody has to edit sixty blueprints. A site that wants them somewhere else declares a field with the same handle wherever it likes, and the addon leaves it there.
@@ -255,6 +257,7 @@ Owners, intervals and review dates are per site. A translation can be stale whil
 | `lifecycle:notify [--dry-run]` | Send the day's digests. Scheduled each morning. |
 | `lifecycle:expire [--dry-run] [--collection=] [--allow-nav=*]` | Run the expiry actions collections have opted into. Scheduled daily; inert until then. |
 | `lifecycle:report [--format=table\|json\|csv\|html\|pdf] [--out=]` | The governance report. |
+| `lifecycle:doctor [--json]` | Is it installed and up to date, does the config say what it was meant to, is every published entry tracked, is the scheduler running, are there rows for pages that are gone. Reads only; says what to run. Exit code 1 when something stops it working. |
 
 ## Configuration
 

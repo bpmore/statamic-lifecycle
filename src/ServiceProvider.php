@@ -84,6 +84,7 @@ class ServiceProvider extends AddonServiceProvider
         Commands\NotifyLifecycle::class,
         Commands\ExpireLifecycle::class,
         Commands\ReportLifecycle::class,
+        Commands\DoctorLifecycle::class,
     ];
 
     public function bootAddon(): void

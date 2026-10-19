@@ -112,7 +112,7 @@ is optional and degrades to a clear message rather than a failure.
 Support is through [GitHub issues](https://github.com/bpmore/statamic-lifecycle/issues).
 Open one for a bug, a question, or something the documentation does not
 answer. Say which Statamic and Lifecycle versions you are on and, for a
-bug, what `lifecycle:report` or the dry run printed.
+bug, what `php please lifecycle:doctor` printed.
 
 ## Development
 

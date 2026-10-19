@@ -23,6 +23,12 @@ like the others.
   that person, outcome *I updated it*, marked *from an edit* so an attestation
   stays an attestation. Once per person per page per day; never a draft, a
   save with nothing changed, an import, or Lifecycle's own writes.
+- **`lifecycle:doctor`**: one run that says whether the addon is installed
+  and up to date, whether the config resolves and names real collections and
+  people, whether every published entry is tracked and baselined, whether
+  the nightly recompute has been running, whether rows exist for pages that
+  are gone, and whether a browser is there for the PDF. Reads only, says what
+  to run, exits 1 when something stops it working.
 
 ## 1.0.1 — 2026-09-17
 
