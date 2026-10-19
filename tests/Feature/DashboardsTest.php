@@ -134,10 +134,33 @@ describe('the screens', function () {
                 ->where('total', 6)
                 ->where('statuses.overdue', 1)
                 ->where('attention.no_owner', 1)
+                // Two late rows, neither baselined nor reviewed: the day-one notice.
+                ->where('baseline.late_unbaselined', 2)
+                ->where('baseline.baselined', 0)
+                ->where('baseline.spread_from', null)
                 ->has('collections', 2)
                 ->has('owners', 3)
                 ->where('me', 'alice')
                 ->where('statusMeta.overdue.colour', 'red'));
+    });
+
+    it('drops the notice once the late pages are baselined, and says what the baseline did', function () {
+        EntryState::query()->whereIn('status', ['overdue', 'expired'])->update(['baselined' => true, 'baseline_review_at' => '2026-11-03 00:00:00']);
+        EntryState::query()->where('status', 'fresh')->update(['baselined' => true, 'baseline_review_at' => '2027-08-19 00:00:00']);
+
+        $baseline = (new Overview)->baseline();
+
+        expect($baseline['late_unbaselined'])->toBe(0)
+            ->and($baseline['baselined'])->toBeGreaterThanOrEqual(3)
+            ->and($baseline['spread_from'])->toBe('2026-11-03')
+            ->and($baseline['spread_to'])->toBe('2027-08-19');
+    });
+
+    it('does not count a fresh page that was never baselined: a new page is not a backlog', function () {
+        EntryState::query()->whereIn('status', ['overdue', 'expired'])->update(['baselined' => true]);
+
+        expect((new Overview)->baseline()['late_unbaselined'])->toBe(0)
+            ->and(EntryState::query()->where('baselined', false)->count())->toBeGreaterThan(0);
     });
 
     it('serves the list, filtered from the query string', function () {

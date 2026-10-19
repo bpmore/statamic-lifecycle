@@ -8,3 +8,4 @@
 
 # Built control panel assets ARE committed: an addon ships them rather than
 # expecting every site to run a build. node_modules is not.
+.playwright-mcp/

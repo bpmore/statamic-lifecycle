@@ -29,6 +29,9 @@ like the others.
   the nightly recompute has been running, whether rows exist for pages that
   are gone, and whether a browser is there for the PDF. Reads only, says what
   to run, exits 1 when something stops it working.
+- The Lifecycle screen carries a notice until the baseline has been run over
+  the overdue backlog: what is happening, what the baseline would do, and how
+  to adjust it. Afterwards, one line says what the baseline did.
 
 ## 1.0.1 — 2026-09-17
 

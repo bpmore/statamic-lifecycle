@@ -12,6 +12,7 @@ const props = defineProps({
     total: Number,
     statuses: Object,
     attention: Object,
+    baseline: Object,
     collections: Array,
     sites: Array,
     owners: Array,
@@ -29,6 +30,12 @@ const headline = computed(() => {
     if (late === 0) return `${pages} tracked, none overdue.`;
     return `${late.toLocaleString()} of ${pages} ${late === 1 && props.total === 1 ? 'is' : 'are'} overdue for review.`;
 });
+
+// Day one on a large site (spec §2): a page never baselined or reviewed is
+// dated from its last modification, so old content is overdue at once. The
+// notice stays until the baseline has been run over everything that needs it.
+const unbaselined = computed(() => props.baseline?.late_unbaselined ?? 0);
+const day = (iso) => iso ? new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '';
 
 function list(params) {
     const query = Object.entries(params).filter(([, v]) => v !== null && v !== undefined && v !== '').map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
@@ -65,6 +72,31 @@ const cellPadding = { paddingInline: '1.125rem' };
 
     <template v-else>
         <Text as="p" class="mt-4">{{ headline }}</Text>
+
+        <!-- Spec §2: the notice until baselining is complete -->
+        <Card v-if="unbaselined > 0" class="mt-4">
+            <Heading :text="`${unbaselined.toLocaleString()} overdue ${unbaselined === 1 ? 'page has' : 'pages have'} never been baselined`" />
+            <Text as="p" class="mt-2">
+                A page nobody has baselined or reviewed is dated from the last time it was modified, so older content
+                shows as overdue at once. That is honest, but it is not a schedule anyone can work through.
+            </Text>
+            <Text as="p" class="mt-2">
+                <code>php please lifecycle:baseline --dry-run</code> shows how it would spread first reviews across the
+                next twelve months, oldest content first, and which owners it would guess from last authors; the same
+                command without <code>--dry-run</code> writes it. Nothing in any entry changes.
+            </Text>
+            <Text as="p" class="mt-2" size="sm" variant="subtle">
+                To adjust: <code>--horizon=</code> for a longer or shorter spread, <code>intervals.*</code> in
+                <code>config/lifecycle.php</code> for how often each collection needs looking at, and
+                <code>owners.never_infer</code> for accounts that must not be guessed as owners. Run
+                <code>lifecycle:recompute</code> after changing config.
+            </Text>
+        </Card>
+
+        <Text v-else-if="baseline?.baselined > 0 && baseline?.spread_from" as="p" class="mt-2" size="sm" variant="subtle">
+            The baseline gave {{ baseline.baselined.toLocaleString() }} {{ baseline.baselined === 1 ? 'page' : 'pages' }} a first review date between
+            {{ day(baseline.spread_from) }} and {{ day(baseline.spread_to) }}. Each keeps that date until a person reviews it.
+        </Text>
 
         <!-- Status counts, each a way into the list -->
         <div class="mt-4 flex flex-wrap gap-2">

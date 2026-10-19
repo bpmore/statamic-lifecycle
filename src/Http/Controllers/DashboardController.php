@@ -28,6 +28,7 @@ class DashboardController extends CpController
             'total' => $installed ? $overview->total() : 0,
             'statuses' => $installed ? $overview->statuses() : [],
             'attention' => $installed ? $overview->attention() : [],
+            'baseline' => $installed ? $overview->baseline() : null,
             'collections' => $installed ? $overview->byCollection() : [],
             'sites' => $installed ? $overview->bySite() : [],
             'owners' => $installed ? $overview->byOwner() : [],

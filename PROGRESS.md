@@ -60,7 +60,7 @@
 - [x] Bulk *Set interval* action in the CP listing (spec §8)
 - [x] Editing counts as a review — a config option, default off (spec §11)
 - [x] `lifecycle:doctor`: install state, config validity, orphans, never-baselined count (spec §11)
-- [ ] A notice in the CP until baselining is complete, saying what happened and how to adjust (spec §2)
+- [x] A notice in the CP until baselining is complete, saying what happened and how to adjust (spec §2)
 - [ ] CHANGELOG, docs, tag 1.1.0
 
 ## Notes
@@ -1103,3 +1103,26 @@
   last resort on the dev site, two ownerless pages, and the last recompute 775 hours ago because
   the dev site runs no scheduler. Exactly the kind of thing it exists to say.
 - 568 tests, Pint clean, no asset change.
+
+### 2026-10-19 — The notice until baselining is complete
+- **What "not baselined" means here**: `Overview::baseline()` counts rows that are overdue or
+  expired, never baselined, never reviewed — pages dated from their last modification, the wall
+  of overdue spec §2 is about. A new page published after install is also un-baselined, and is
+  fresh, and is no problem; counting it would nag every site that adds content, and telling
+  them to re-run the baseline would move a brand-new page's first review to tomorrow (the
+  planner lands a lone entry there). So it is not counted; tested.
+- The Lifecycle screen carries a card while that count is above zero: how many, why they read
+  as overdue, what `lifecycle:baseline --dry-run` would do, and how to adjust (`--horizon=`,
+  `intervals.*`, `owners.never_infer`, then recompute). Once it is zero and rows carry a
+  `baseline_review_at`, one subtle line says what the baseline did (count, first and last date,
+  read back from the rows — nothing new is stored). Both render: the Chrome extension was not
+  connected, so Playwright against the dev site on `php artisan serve` (port 8123) with a
+  temporary super user, both states screenshotted, no console errors; the fifteen late rows
+  were flipped un-baselined for the first shot and restored from a snapshot of their review
+  columns (counts identical before and after). Temp user deleted, server stopped. The plugin
+  writes screenshots to `.playwright-mcp/`, now ignored.
+- **Host noise, not ours**: Herd's `herd.sock` points at PHP 8.4's FPM, which is not running
+  (8.2/8.3/8.5 are), so https://statamic-dev.test returns 502 from nginx. It was already so
+  when first hit this run; `herd restart` did not bring 8.4 up. Left alone — which PHP Herd
+  serves is the user's setting — and worked around with the built-in server.
+- 570 tests, Pint clean, bundle rebuilt (`cp-IoIExcOb.js`) and published to the host.

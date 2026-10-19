@@ -48,6 +48,36 @@ final class Overview
         ];
     }
 
+    /**
+     * Spec §2's banner: where the site stands with baselining.
+     *
+     * The problem the baseline exists to prevent is a wall of overdue on
+     * day one, so the count that matters is pages overdue that were never
+     * baselined or reviewed — dated from their last modification. A new
+     * page published after install is also un-baselined, and is fresh, and
+     * is no problem at all; it is not counted. The spread itself is read
+     * back from the rows, so the screen can say what the baseline did.
+     *
+     * @return array{late_unbaselined: int, baselined: int, spread_from: ?string, spread_to: ?string}
+     */
+    public function baseline(): array
+    {
+        $spread = EntryState::query()->whereNotNull('baseline_review_at')
+            ->selectRaw('min(baseline_review_at) as first, max(baseline_review_at) as last')
+            ->first();
+
+        return [
+            'late_unbaselined' => EntryState::query()
+                ->where('baselined', false)
+                ->whereNull('last_reviewed_at')
+                ->whereIn('status', [Status::Overdue->value, Status::Expired->value])
+                ->count(),
+            'baselined' => EntryState::query()->where('baselined', true)->count(),
+            'spread_from' => $spread?->first === null ? null : substr((string) $spread->first, 0, 10),
+            'spread_to' => $spread?->last === null ? null : substr((string) $spread->last, 0, 10),
+        ];
+    }
+
     /** @return list<array<string, mixed>> */
     public function byCollection(): array
     {

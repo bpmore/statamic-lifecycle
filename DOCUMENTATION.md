@@ -28,6 +28,8 @@ Install Lifecycle on a real institutional site and every page would instantly be
 
 Run it with `--dry-run` first: it prints the distribution and changes nothing.
 
+Until it has been run, the Lifecycle screen in the control panel carries a notice: how many overdue pages have never been baselined, why they read as overdue, what the baseline would do, and how to adjust it. Once they are baselined the notice gives way to one line saying what the baseline did.
+
 When something seems off later — nothing tracked, no reminders, a status that will not move — `php please lifecycle:doctor` checks the install, the config, the content and the scheduler in one run and says what to do about each thing it finds.
 
 ## The four fields
