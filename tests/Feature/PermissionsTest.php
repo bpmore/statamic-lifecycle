@@ -64,13 +64,12 @@ function runAction(string $action, array $values = []): TestResponse
     ]);
 }
 
-it('registers four of spec §8\'s five permissions, in their own group, flat', function () {
+it('registers spec §8\'s five permissions, in their own group, flat', function () {
     $ours = Permission::boot()->all()->filter(fn ($p) => $p->group() === 'lifecycle');
 
-    expect($ours->map->value()->values()->all())->toBe(['view lifecycle', 'attest reviews', 'assign owners', 'configure expiry actions'])
+    expect($ours->map->value()->values()->all())->toBe(['view lifecycle', 'attest reviews', 'assign owners', 'manage exemptions', 'configure expiry actions'])
         ->and($ours->every(fn ($p) => $p->children()->isEmpty()))->toBeTrue()
         ->and($ours->firstWhere(fn ($p) => $p->value() === 'configure expiry actions')->description())->toContain('config/lifecycle.php');
-    // "manage exemptions" waits for the exemption feature: see Auth\Permissions.
 });
 
 describe('view lifecycle', function () {
@@ -154,6 +153,20 @@ describe('assign owners', function () {
     });
 });
 
+describe('manage exemptions', function () {
+    it('is what Exempt and Clear exemption ask for', function () {
+        $this->actingAs(($this->userWith)(['manage exemptions']));
+        runAction('exempt')->assertOk();
+        expect(Entry::find('page')->get('review_exempt'))->toBeTrue();
+        runAction('clear_exemption')->assertOk();
+        expect(Entry::find('page')->get('review_exempt'))->toBeNull();
+
+        $this->actingAs(($this->userWith)(['attest reviews', 'assign owners', 'view lifecycle', 'configure expiry actions']));
+        runAction('exempt')->assertForbidden();
+        expect(Entry::find('page')->get('review_exempt'))->toBeNull();
+    });
+});
+
 describe('configure expiry actions', function () {
     it('is what Put it back asks for, and the panel\'s button mirrors it', function () {
         Entry::find('page')->unpublish();
@@ -177,6 +190,7 @@ it('lets a super user do all of it, as Statamic does', function () {
     expect(Permissions::mayView($root))->toBeTrue()
         ->and(Permissions::mayAttest($root, Entry::find('page')))->toBeTrue()
         ->and(Permissions::mayAssign($root, Entry::find('page')))->toBeTrue()
+        ->and(Permissions::mayManageExemptions($root, Entry::find('page')))->toBeTrue()
         ->and(Permissions::mayPutBack($root, Entry::find('page')))->toBeTrue()
         ->and(Permissions::mayView(null))->toBeFalse();
 });

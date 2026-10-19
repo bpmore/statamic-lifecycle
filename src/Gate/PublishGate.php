@@ -21,6 +21,8 @@ use Statamic\Facades\User;
  * person who has said "this page is mine"; an owner who has left is a name,
  * not an owner. A review date is either a review-by deadline or a review
  * interval: both are the author saying when this page next needs looking at.
+ * A page exempt from review has answered that question with "never", and
+ * needs only an owner.
  *
  * Drafts are never gated. Somebody's work in progress is not what this
  * protects, and the gate is about publishing.
@@ -89,7 +91,9 @@ final class PublishGate
             $missing[] = GateResult::OWNER_GONE;
         }
 
-        if ($facts->reviewBy === null && ($facts->reviewInterval === null || $facts->reviewInterval === '')) {
+        // An exempt page has no review date by decision — "never" is an
+        // answer to "when" — so the gate asks only for the owner.
+        if (! $facts->exempt && $facts->reviewBy === null && ($facts->reviewInterval === null || $facts->reviewInterval === '')) {
             $missing[] = GateResult::REVIEW_DATE;
         }
 

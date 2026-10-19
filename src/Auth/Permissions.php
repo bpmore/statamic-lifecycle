@@ -14,15 +14,11 @@ use Statamic\Contracts\Entries\Entry;
  *   view lifecycle            the site-wide screens and numbers
  *   assign owners             say who owns a page
  *   attest reviews            mark a page reviewed, in one's own name
+ *   manage exemptions         take a page out of the cycle, or put it back
  *   configure expiry actions  put back what an automated action changed
  *
  * Seeing one's own content needs no permission: "My content" and the
  * sidebar panel are about pages the person is already allowed to edit.
- *
- * "Manage exemptions" from spec §8 is not registered yet. There is nothing
- * for it to guard — where an exemption is recorded is still undecided (see
- * PROGRESS.md) — and a permission that grants nothing is a lie in the roles
- * screen. It arrives with the feature.
  *
  * Expiry configuration itself lives in config/lifecycle.php, which only
  * whoever deploys the site can change. The permission covers the one thing
@@ -35,6 +31,8 @@ final class Permissions
     public const ASSIGN_OWNERS = 'assign owners';
 
     public const ATTEST_REVIEWS = 'attest reviews';
+
+    public const MANAGE_EXEMPTIONS = 'manage exemptions';
 
     public const CONFIGURE_EXPIRY = 'configure expiry actions';
 
@@ -54,6 +52,12 @@ final class Permissions
     public static function mayAssign(?User $user, Entry $entry): bool
     {
         return $user !== null && (bool) $user->can(self::ASSIGN_OWNERS) && (bool) $user->can('edit', $entry);
+    }
+
+    /** An exemption is written into the entry, so: may edit, and may say so. */
+    public static function mayManageExemptions(?User $user, Entry $entry): bool
+    {
+        return $user !== null && (bool) $user->can(self::MANAGE_EXEMPTIONS) && (bool) $user->can('edit', $entry);
     }
 
     /** Putting back writes the entry too. */

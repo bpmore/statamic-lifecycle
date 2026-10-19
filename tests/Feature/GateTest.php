@@ -118,6 +118,16 @@ describe('the refusal', function () {
         expect(Entry::find('handbook'))->not->toBeNull()->and(Entry::find('charter'))->not->toBeNull();
     });
 
+    it('asks an exempt page for an owner only: "never" is its answer to "when"', function () {
+        policyEntry('archive', data: ['content_owner' => 'alice', 'review_exempt' => true])->save();
+
+        expect(Entry::find('archive'))->not->toBeNull();
+
+        $refusal = refusal(fn () => policyEntry('orphan-archive', data: ['review_exempt' => true])->save());
+
+        expect(array_keys($refusal->errors()))->toBe(['content_owner']);
+    });
+
     it('does not count an inferred owner: the person named on the page, or nobody', function () {
         // The last author would be inferred as owner by the computation; the gate wants a decision.
         $refusal = refusal(fn () => policyEntry('handbook', data: ['updated_by' => 'alice', 'review_interval' => 'yearly'])->save());

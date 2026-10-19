@@ -83,11 +83,13 @@ class BaselineLifecycle extends Command
         $candidates = [];
         /** @var list<string> entries with a hard deadline: baselined, but not spread */
         $hardDated = [];
+        /** @var list<string> entries exempt from review: a row, but no date at all */
+        $exempt = [];
         $published = 0;
         $skipped = 0;
 
         $batch = [];
-        $flush = function () use (&$batch, &$facts, &$candidates, &$hardDated, &$skipped, $store, $computer, $now): void {
+        $flush = function () use (&$batch, &$facts, &$candidates, &$hardDated, &$exempt, &$skipped, $store, $computer, $now): void {
             $prior = $store->priorFor(array_keys($batch));
 
             foreach ($batch as $id => $entryFacts) {
@@ -98,6 +100,12 @@ class BaselineLifecycle extends Command
                 }
 
                 $facts[$id] = $entryFacts;
+
+                if ($entryFacts->exempt) {
+                    $exempt[] = $id;
+
+                    continue;
+                }
 
                 if ($entryFacts->reviewBy !== null) {
                     $hardDated[] = $id;
@@ -110,7 +118,9 @@ class BaselineLifecycle extends Command
                 $interval = $computer->compute($entryFacts, PriorState::none(), $now)->intervalDays;
 
                 if ($interval === null) {
-                    $hardDated[] = $id;   // exempt: a row, but no date to spread
+                    // Cannot happen — every entry resolves to some interval
+                    // — but a row with no date beats a planner given null.
+                    $hardDated[] = $id;
 
                     continue;
                 }
@@ -150,6 +160,10 @@ class BaselineLifecycle extends Command
 
         if ($hardDated !== []) {
             $this->components->twoColumnDetail('Have a review-by date of their own, kept', number_format(count($hardDated)));
+        }
+
+        if ($exempt !== []) {
+            $this->components->twoColumnDetail('Exempt from review, so no date to give', number_format(count($exempt)));
         }
 
         if ($facts === []) {

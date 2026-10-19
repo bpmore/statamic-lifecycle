@@ -5,13 +5,16 @@ declare(strict_types=1);
 namespace Bpmore\StatamicLifecycle\Blueprint;
 
 /**
- * The three fields an editor authors: who owns the page, how often it needs
- * looking at, and any hard deadline.
+ * The four fields an editor authors: who owns the page, how often it needs
+ * looking at, any hard deadline, and whether it is outside the cycle at all.
  *
  * These live in the entry, not in the addon's tables (spec §3): an owner is an
  * editorial decision, it belongs in content, it should show in git and travel
- * with revisions. Everything computed from them — next review date, status,
- * the attestation record — lives in the tables and never touches the entry.
+ * with revisions. So is an exemption — "this page is fixed at a point in time
+ * and will never need a review" is a decision about the content, and one an
+ * auditor should find in the entry's history. Everything computed from them —
+ * next review date, status, the attestation record — lives in the tables and
+ * never touches the entry.
  *
  * One definition, used wherever the fields are needed, so the handles the rest
  * of the addon reads are the handles the blueprint writes.
@@ -23,6 +26,8 @@ final class LifecycleFields
     public const REVIEW_INTERVAL = 'review_interval';
 
     public const REVIEW_BY = 'review_by';
+
+    public const REVIEW_EXEMPT = 'review_exempt';
 
     /**
      * The intervals an editor can pick, stored by name rather than by number.
@@ -80,7 +85,24 @@ final class LifecycleFields
                 'localizable' => true,
                 'listable' => 'hidden',
             ],
+            self::REVIEW_EXEMPT => [
+                'type' => 'toggle',
+                'display' => __('Exempt from review'),
+                'instructions' => __('Takes this page out of the review cycle: no review date, no reminders, no expiry action. For content fixed at a point in time, like a published report or a minuted decision. The owner still owns it.'),
+                'localizable' => true,
+                'listable' => 'hidden',
+            ],
         ];
+    }
+
+    /**
+     * Whether a stored review_exempt value means exempt. A toggle stores a
+     * boolean; a site that declared the field itself, or an import, may have
+     * stored "true" or 1. Nothing stored is not exempt.
+     */
+    public static function isExemptValue(mixed $value): bool
+    {
+        return (bool) filter_var($value, FILTER_VALIDATE_BOOLEAN);
     }
 
     /** @return array<string, string> interval name => label */

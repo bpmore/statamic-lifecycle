@@ -58,6 +58,22 @@ it('reads an entry with none of the fields set', function () {
         ->and($facts->lastModifiedAt)->toBeInstanceOf(DateTimeImmutable::class);
 });
 
+it('reads an exemption, as stored by the toggle or by hand', function () {
+    $entry = Entry::make()->id('e-7')->collection('pages')->slug('archive')->data([
+        'title' => 'Archive',
+        LifecycleFields::REVIEW_EXEMPT => true,
+    ]);
+    $entry->save();
+
+    expect((new EntryFactsReader)->read($entry)->exempt)->toBeTrue();
+
+    $entry->set(LifecycleFields::REVIEW_EXEMPT, 'true')->save();
+    expect((new EntryFactsReader)->read($entry)->exempt)->toBeTrue();
+
+    $entry->set(LifecycleFields::REVIEW_EXEMPT, false)->save();
+    expect((new EntryFactsReader)->read($entry)->exempt)->toBeFalse();
+});
+
 it('does not count a last author who no longer exists', function () {
     // People leave. The dashboard inferring an owner nobody can email is
     // worse than admitting there is nobody.

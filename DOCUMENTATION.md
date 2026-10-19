@@ -28,15 +28,16 @@ Install Lifecycle on a real institutional site and every page would instantly be
 
 Run it with `--dry-run` first: it prints the distribution and changes nothing.
 
-## The three fields
+## The four fields
 
-Three fields appear in the sidebar of every entry blueprint on their own; nobody has to edit sixty blueprints. A site that wants them somewhere else declares a field with the same handle wherever it likes, and the addon leaves it there.
+Four fields appear in the sidebar of every entry blueprint on their own; nobody has to edit sixty blueprints. A site that wants them somewhere else declares a field with the same handle wherever it likes, and the addon leaves it there.
 
 - **Content owner** (`content_owner`) — the person who knows whether this page is still accurate. They get the reminders.
 - **Review interval** (`review_interval`) — monthly, quarterly, every six months, yearly, every two years, every three years. Empty means the default for the collection.
 - **Review by** (`review_by`) — a hard deadline that overrides the interval, for when something outside the page sets the date: an accreditation visit, a board meeting, a rule that changes.
+- **Exempt from review** (`review_exempt`) — a toggle that takes the page out of the cycle: no review date, no reminders, no expiry action. For content fixed at a point in time: a published report, a minuted decision, an archive. The owner still owns it.
 
-All three are localizable: a translation can be stale while the original is current, so its owner and cadence are its own.
+All four are localizable: a translation can be stale while the original is current, so its owner and cadence are its own; a translation inherits its origin's exemption until it says otherwise.
 
 **Authored intent lives in the entry; operational state lives in the tables.** An owner is an editorial decision, it belongs in content, it shows in git and travels with revisions. Everything computed from the fields — the next review date, the status, the attestation record — lives in the addon's tables and never touches the entry. That split is the most important decision in the product, and the reason marking a page reviewed never creates a revision.
 
@@ -46,7 +47,7 @@ The effective interval is the most specific of: the entry's `review_interval`, t
 
 The owner is the most specific of: the `content_owner` on the entry (*assigned*), the last author (*inferred*, unless `owners.infer_from_last_author` is off or the account is in `never_infer`), then the site's owner of last resort (*fallback*). Nothing is ever ownerless.
 
-Five statuses: **fresh**, **due soon** (within `due_soon_days`, 30 by default), **overdue**, **expired** (overdue for `expired_after_days`, 30 by default — the state in which expiry actions, where a collection has turned them on, apply), and **exempt**.
+Five statuses: **fresh**, **due soon** (within `due_soon_days`, 30 by default), **overdue**, **expired** (overdue for `expired_after_days`, 30 by default — the state in which expiry actions, where a collection has turned them on, apply), and **exempt** — the page's *Exempt from review* is on, and none of the rest applies.
 
 ### Owner of last resort and escalation contacts
 
@@ -64,7 +65,7 @@ Editing a page does not count as reviewing it. Somebody fixing a typo has not co
 
 ### The sidebar panel
 
-Under the three fields, a **Review** panel shows the page's status and next review date and why it is that date, the owner and how they came to be the owner, who last reviewed the page and when, the full history, the *Mark reviewed* button, and — when Lifecycle has changed the page — what it did and a button to put it back.
+Under the four fields, a **Review** panel shows the page's status and next review date and why it is that date, the owner and how they came to be the owner, who last reviewed the page and when, the full history, the *Mark reviewed* button, and — when Lifecycle has changed the page — what it did and a button to put it back.
 
 ## Assigning owners
 
@@ -85,11 +86,19 @@ The CSV is the file a department sends back after being asked "who owns these pa
 
 In the control panel, **Assign owner** is a bulk action on the entry listing: filter, select, assign.
 
-Assigning is the one thing in this addon that writes to an entry, and on purpose: an owner is content. Each saved entry is a change like any other; it shows in git.
+Assigning writes to the entry, and on purpose: an owner is content. Each saved entry is a change like any other; it shows in git.
+
+## Exempting a page from review
+
+Some pages are fixed at a point in time and will never need a person to confirm them again: the 2023 annual report, the minutes of a meeting, an archive kept for the record. Turn on **Exempt from review** in the sidebar, or select pages in the entry listing and run **Exempt from review**; **Clear exemption** puts them back. An exempt page has no review date, gets no reminders, is never expired, and is counted as exempt rather than as never reviewed. It still has an owner.
+
+Clearing an exemption works the date out as for any other page — from its last review, its baseline date, or its last modification — so a page that was exempt for years may come back overdue. That is the honest reading.
+
+Like the owner, the exemption is written into the entry: it is a decision about the content, and an auditor should find it in the page's history.
 
 ## The screens
 
-**Lifecycle**, under Tools, is the utility screen: how much content is in what state, and the same by collection, by site and by owner, with a way into each list. The list filters by status, by collection, by site, by owner, and by what needs attention — never reviewed, no owner, owner inferred rather than confirmed — and each row links to the entry. *Mark reviewed* and *Assign owner* are Statamic entry actions: in the sidebar panel, and on the collection's own entry listing for one entry or many.
+**Lifecycle**, under Tools, is the utility screen: how much content is in what state, and the same by collection, by site and by owner, with a way into each list. The list filters by status, by collection, by site, by owner, and by what needs attention — never reviewed, no owner, owner inferred rather than confirmed — and each row links to the entry. *Mark reviewed*, *Assign owner*, *Exempt from review* and *Clear exemption* are Statamic entry actions: in the sidebar panel, and on the collection's own entry listing for one entry or many.
 
 **My content** is the same list for the person looking at it: the screen an owner actually lives in.
 
@@ -169,9 +178,9 @@ The date is the day the gate went on. Entries created before it are never gated 
 
 A refused save says what is missing, under the field where it is set, in plain words: *Choose a content owner before publishing. Every entry in Policies needs one.* — *Set a review-by date or a review interval before publishing. Every entry in Policies needs one.*
 
-Confirmed means a person named on the page who still exists: an owner inferred from the last author does not count, the owner of last resort does not count, and a named owner who has since left gets their own line. A review date is either a review-by date or a review interval — both are the author saying when.
+Confirmed means a person named on the page who still exists: an owner inferred from the last author does not count, the owner of last resort does not count, and a named owner who has since left gets their own line. A review date is either a review-by date or a review interval — both are the author saying when. A page exempt from review has answered "never", and needs only an owner.
 
-Lifecycle's own writes — assigning an owner, an expiry flag, a put-back — go through the gate unchecked. Anything else that saves an entry with events on, an import script included, is refused like a person would be.
+Lifecycle's own writes — assigning an owner, an exemption, an expiry flag, a put-back — go through the gate unchecked. Anything else that saves an entry with events on, an import script included, is refused like a person would be.
 
 ## The governance report
 
@@ -215,11 +224,12 @@ The tags read the page being rendered, or `entry="…"`, once per request, and n
 
 ## Permissions
 
-Four, in their own group on the Permissions screen:
+Five, in their own group on the Permissions screen:
 
 - **View lifecycle** — the dashboard, the full list, and the site-wide numbers on the widget.
 - **Attest reviews** — mark a page reviewed, in one's own name, on a page the person can see.
 - **Assign owners** — say who owns a page, on pages the person may edit.
+- **Manage exemptions** — take a page out of the review cycle, or put it back, on pages the person may edit.
 - **Configure expiry actions** — put back what an automated expiry action changed. Keep it to administrators.
 
 Everyone signed in sees their own content — "My content", the sidebar panel, the widget's "Yours" — without any of them. Turning expiry actions on is done in `config/lifecycle.php`, by whoever deploys the site, and nowhere in the control panel. Super users pass everything, as they do in Statamic.
@@ -280,4 +290,4 @@ Publish the config with `php please vendor:publish --tag=lifecycle-config`. Ever
 
 ## What it does not do
 
-It does not approve, route or sign off content before it is published; Statamic's own workflows are for that. It does not verify content: a review records that a named person confirmed a page on a date, and nothing here claims a page is accurate. An inferred owner is a guess until a person confirms it. Exempting a page from the cycle is not yet a control-panel action.
+It does not approve, route or sign off content before it is published; Statamic's own workflows are for that. It does not verify content: a review records that a named person confirmed a page on a date, and nothing here claims a page is accurate. An inferred owner is a guess until a person confirms it.

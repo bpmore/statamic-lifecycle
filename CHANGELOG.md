@@ -4,6 +4,16 @@ What changed in each release, and what you have to do about it.
 
 Versions are `MAJOR.MINOR.PATCH`.
 
+## Unreleased
+
+Nothing to do on upgrade. The new field appears on its own, like the others.
+
+- **Exemptions.** An *Exempt from review* toggle on every entry, and two
+  entry actions, *Exempt from review* and *Clear exemption*, for one page or
+  many from the listing. An exempt page has no review date, gets no
+  reminders, is never expired, and is counted as exempt. The gate asks an
+  exempt page for an owner only. A new permission, *Manage exemptions*.
+
 ## 1.0.1 — 2026-09-17
 
 Nothing to do on upgrade.

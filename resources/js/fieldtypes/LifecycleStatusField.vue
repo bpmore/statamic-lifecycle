@@ -130,6 +130,9 @@ async function submit() {
             <Text v-if="panel.state.next_review_reason" as="div" size="sm" variant="subtle">
                 From {{ panel.state.next_review_reason }}<span v-if="panel.state.interval_label">; {{ panel.state.interval_label.toLowerCase() }}, {{ panel.state.interval_reason }}</span>.
             </Text>
+            <Text v-if="panel.state.status === 'exempt'" as="div" size="sm" variant="subtle">
+                Outside the review cycle: no review date, no reminders, no expiry action. Turn off <em>Exempt from review</em> above to bring it back.
+            </Text>
         </div>
         <div v-else>
             <Text size="sm" variant="subtle">

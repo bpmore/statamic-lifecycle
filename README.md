@@ -57,7 +57,7 @@ php please lifecycle:baseline
 
 That is the whole installation. No database is required — the addon keeps its
 tables in a SQLite file of its own unless you point it at one of the site's
-connections — and the three fields it needs appear in every entry's sidebar on
+connections — and the four fields it needs appear in every entry's sidebar on
 their own.
 
 Then run the scheduler, if the site does not already: `lifecycle:recompute`
@@ -83,7 +83,7 @@ If it surprises you, the config is wrong, not the content.
 | | |
 |---|---|
 | [Installing and day one](DOCUMENTATION.md#installing) | Tables, the baseline, the scheduler |
-| [Owners, intervals and dates](DOCUMENTATION.md#the-three-fields) | What lives in the entry and what lives in the tables |
+| [Owners, intervals and dates](DOCUMENTATION.md#the-four-fields) | What lives in the entry and what lives in the tables |
 | [Attestation](DOCUMENTATION.md#marking-a-page-reviewed) | The record that makes this worth paying for |
 | [Assigning owners](DOCUMENTATION.md#assigning-owners) | Branch, collection, blueprint, author, term, CSV, listing |
 | [Reminders](DOCUMENTATION.md#reminders) | Digests, escalation, quiet days, each person's own frequency |
@@ -91,7 +91,7 @@ If it surprises you, the config is wrong, not the content.
 | [The gate](DOCUMENTATION.md#the-gate) | Requiring an owner and a review date before publishing |
 | [The governance report](DOCUMENTATION.md#the-governance-report) | Console, JSON, CSV, HTML, tagged PDF |
 | [On the front end](DOCUMENTATION.md#on-the-front-end) | `{{ lifecycle:last_reviewed }}` and friends |
-| [Permissions](DOCUMENTATION.md#permissions) | Four, and what each opens |
+| [Permissions](DOCUMENTATION.md#permissions) | Five, and what each opens |
 | [Commands](DOCUMENTATION.md#commands) | All of them, with their options |
 | [Configuration](DOCUMENTATION.md#configuration) | Every setting, with its default |
 

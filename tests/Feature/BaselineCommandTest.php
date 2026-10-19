@@ -154,6 +154,24 @@ it('leaves an entry with its own review-by date on that date, but marks it basel
         ->and($row->next_review_source)->toBe('hard_date');
 });
 
+it('gives an exempt entry a row and no date, and says so', function () {
+    publishedEntry('archive', 'pages', '2020-01-01', [LifecycleFields::REVIEW_EXEMPT => true]);
+    publishedEntry('live', 'pages', '2020-01-01');
+
+    $this->artisan('lifecycle:baseline')
+        ->expectsOutputToContain('Exempt from review, so no date to give')
+        ->expectsOutputToContain('Baselined 2 entries.')
+        ->assertExitCode(0);
+
+    $row = EntryState::query()->find('archive');
+
+    expect($row->status)->toBe(Status::Exempt->value)
+        ->and($row->baselined)->toBeTrue()
+        ->and($row->next_review_at)->toBeNull()
+        ->and($row->baseline_review_at)->toBeNull()
+        ->and(EntryState::query()->find('live')->next_review_at)->not->toBeNull();
+});
+
 it('leaves drafts alone', function () {
     // Lifecycle governs content that is already published. What is not
     // published yet is Workflows territory, and does not go stale.

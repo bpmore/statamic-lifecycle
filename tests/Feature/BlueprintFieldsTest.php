@@ -14,7 +14,7 @@ beforeEach(function () {
     Collection::make('pages')->save();
 });
 
-it('puts the three fields on an entry blueprint without anybody editing it', function () {
+it('puts the four fields on an entry blueprint without anybody editing it', function () {
     // The collection has no blueprint of its own, so this is Statamic's
     // fallback — the case for most collections on most sites, and the case
     // the addon has to get right without a setup step.
@@ -22,17 +22,19 @@ it('puts the three fields on an entry blueprint without anybody editing it', fun
 
     expect($blueprint->hasField(LifecycleFields::CONTENT_OWNER))->toBeTrue()
         ->and($blueprint->hasField(LifecycleFields::REVIEW_INTERVAL))->toBeTrue()
-        ->and($blueprint->hasField(LifecycleFields::REVIEW_BY))->toBeTrue();
+        ->and($blueprint->hasField(LifecycleFields::REVIEW_BY))->toBeTrue()
+        ->and($blueprint->hasField(LifecycleFields::REVIEW_EXEMPT))->toBeTrue();
 
     // In the sidebar, after Statamic's own slug and date, the way Statamic
     // adds its own fields — not a new tab somebody has to go looking for.
     $sidebar = $blueprint->tabs()->get('sidebar')->fields()->all()->keys()->all();
 
     expect($sidebar)->toContain('slug')
-        ->and(array_slice($sidebar, -4))->toBe([
+        ->and(array_slice($sidebar, -5))->toBe([
             LifecycleFields::CONTENT_OWNER,
             LifecycleFields::REVIEW_INTERVAL,
             LifecycleFields::REVIEW_BY,
+            LifecycleFields::REVIEW_EXEMPT,
             // And under them, the panel that says what they add up to.
             LifecycleStatus::HANDLE,
         ]);
@@ -60,6 +62,9 @@ it('gives each field the type the value needs', function () {
     expect($reviewBy->type())->toBe('date')
         ->and($reviewBy->get('time_enabled'))->toBeFalse()
         ->and($reviewBy->get('mode'))->toBe('single');
+
+    // On or off: a page is in the cycle or it is not.
+    expect($blueprint->field(LifecycleFields::REVIEW_EXEMPT)->type())->toBe('toggle');
 });
 
 it('keeps owner and cadence per site, and stays out of every listing until asked', function () {
@@ -112,7 +117,8 @@ it('leaves a field the site declared where the site put it, and lets its config 
     expect($main)->toBe(['title', LifecycleFields::CONTENT_OWNER])
         ->and($sidebar)->not->toContain(LifecycleFields::CONTENT_OWNER)
         ->and($sidebar)->toContain(LifecycleFields::REVIEW_INTERVAL)
-        ->and($sidebar)->toContain(LifecycleFields::REVIEW_BY);
+        ->and($sidebar)->toContain(LifecycleFields::REVIEW_BY)
+        ->and($sidebar)->toContain(LifecycleFields::REVIEW_EXEMPT);
 
     $owner = $blueprint->field(LifecycleFields::CONTENT_OWNER);
 

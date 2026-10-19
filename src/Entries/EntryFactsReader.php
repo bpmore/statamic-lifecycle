@@ -38,6 +38,9 @@ final class EntryFactsReader
             // lastModifiedBy() looks the user up, and is null when they have
             // gone. An owner who left is not an owner.
             lastAuthorId: $entry->lastModifiedBy()?->id(),
+            // Inherited the same way: a translation of an exempt page is
+            // exempt until somebody says otherwise on the translation.
+            exempt: LifecycleFields::isExemptValue($entry->value(LifecycleFields::REVIEW_EXEMPT)),
         );
     }
 

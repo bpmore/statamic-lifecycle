@@ -1,5 +1,3 @@
-ALL TASKS COMPLETE
-
 # PROGRESS — Lifecycle
 
 **Spec:** `lifecycle-build-spec.md` · **Package:** `bpmore/statamic-lifecycle` · **$99**
@@ -56,6 +54,14 @@ ALL TASKS COMPLETE
 - [x] Governance report export (reuse the tagged-PDF pipeline)
 - [x] Permissions, with expiry configuration admin-only
 - [x] README, listing copy, tag 1.0
+
+## Phase 8 — Spec gaps (a re-read of the spec against 1.0.1, 2026-10-19)
+- [x] Exemptions: a `review_exempt` field, *Exempt* / *Clear exemption* bulk actions, the `manage exemptions` permission (spec §3's `exempt` status, §8's bulk list and permissions)
+- [ ] Bulk *Set interval* action in the CP listing (spec §8)
+- [ ] Editing counts as a review — a config option, default off (spec §11)
+- [ ] `lifecycle:doctor`: install state, config validity, orphans, never-baselined count (spec §11)
+- [ ] A notice in the CP until baselining is complete, saying what happened and how to adjust (spec §2)
+- [ ] CHANGELOG, docs, tag 1.1.0
 
 ## Notes
 <!-- Record surprises, decisions and blockers here. If a task is wrong or blocked, write why and stop. -->
@@ -991,3 +997,43 @@ ALL TASKS COMPLETE
   verified along the way. Spec §11's open questions stand as decided in the notes above: users
   only in v1 with `owner_type` in the schema for groups; editing never counts as reviewing; owner
   and interval per site; orphans swept nightly; the Workflows boundary revisited when core ships.
+
+### 2026-10-19 — Spec re-read, and exemptions
+- **Why Phase 8 exists**: 1.0.1 was tagged with every task ticked, but a re-read of the spec against
+  the code found five things it asks for that nothing built: exemptions (§3's `exempt` status, §8's
+  *exempt* / *clear exemption* bulk actions and `manage exemptions` permission), a bulk *set
+  interval* action (§8), "editing counts as reviewed" as a config option (§11), the doctor command
+  (§11), and the banner until baselining completes (§2). The first three were known and named in
+  the changelog as left out; the last two were not. Listed as Phase 8, one task per run as before.
+  Not a gap, checked: §0's shared vocabulary is about finding severities, which Lifecycle has none
+  of; the gate speaks the same plain words as A11y Gate, which is the part that applies.
+- **Where an exemption lives, decided**: the entry, as `review_exempt` (a toggle, sidebar, fourth
+  of the fields), because spec §3's line is "authored intent in the blueprint, operational state in
+  tables" and "this page is fixed at a point in time" is intent — an auditor should find it in the
+  page's history, as they find the owner. The pure computation already handled `exempt` as a fact;
+  `EntryFactsReader` now reads it (`value()`, so a translation inherits it; parsed through
+  `LifecycleFields::isExemptValue` so `"true"`/`1` from an import count). No migration.
+- **`Exemptions\ExemptionWriter`** mirrors `OwnerAssigner`: only entries whose state changes are
+  saved, the gate suspended, the runner not stamped as last author, the rows recomputed at once.
+  Clearing removes the line on an origin and writes `false` on a translation (it has no line of
+  its own to remove, and must override its origin). `Actions\Exempt` / `Actions\ClearExemption`
+  (`exempt`, `clear_exemption`) are offered in bulk when *any* of the selection applies, so a mixed
+  selection needn't be filtered first; the message counts the rest ("1 already was").
+- **Consequences, each tested**: the gate asks an exempt page for an owner only ("never" is an
+  answer to "when"); reminders owe nothing for it; the overview counts it as exempt, not never
+  reviewed; the baseline gives it a row with no date and says "Exempt from review, so no date to
+  give" (the old path mislabelled it as hard-dated); clearing works the date out afresh, so a page
+  exempt for years comes back overdue — the honest reading, and the confirmation says so. The panel
+  explains an exempt page in a line. No reason field: the entry's history says who and when; add
+  a reason only if a real site asks.
+- `manage exemptions` registered fourth of five; `Auth\Permissions::mayManageExemptions` is edit +
+  the permission, like assigning. Docs, README, listing and changelog (an *Unreleased* section;
+  the tag is Phase 8's last task) updated; "not yet a control-panel action" removed.
+- This checkout had no `vendor/` or `node_modules/` (it was re-cloned for 1.0.1): `composer
+  install` resolved statamic/cms 6.33.0, `npm ci` and `npm run build` rebuilt the bundle
+  (`cp-CPDXKqO2.js`), committed as before. 536 tests pass, 1 skipped (veraPDF not on this
+  machine), Pint clean.
+- Host: the field is on the real entry's blueprint with the right config, both actions resolve
+  and *Exempt* is offered on it, the five permissions list, a writer dry run names the entry and
+  leaves the file untouched; the rebuilt assets `vendor:publish`ed. The panel's new line was not
+  rendered in a browser this run — it is one conditional `<Text>` on an existing payload field.

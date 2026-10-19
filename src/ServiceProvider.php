@@ -38,6 +38,8 @@ class ServiceProvider extends AddonServiceProvider
     protected $actions = [
         Actions\MarkReviewed::class,
         Actions\AssignOwner::class,
+        Actions\Exempt::class,
+        Actions\ClearExemption::class,
         Actions\PutBack::class,
     ];
 
@@ -238,9 +240,8 @@ class ServiceProvider extends AddonServiceProvider
     }
 
     /**
-     * Four of spec §8's five permissions; see Auth\Permissions for the fifth.
-     * Flat, not nested: attesting one's own pages must not require seeing
-     * the whole site.
+     * Spec §8's five permissions. Flat, not nested: attesting one's own
+     * pages must not require seeing the whole site.
      */
     private function bootPermissions(): void
     {
@@ -257,6 +258,10 @@ class ServiceProvider extends AddonServiceProvider
                 Permission::register(Auth\Permissions::ASSIGN_OWNERS)
                     ->label(__('Assign owners'))
                     ->description(__('Say who owns a page, singly or in bulk, on pages they may edit.'));
+
+                Permission::register(Auth\Permissions::MANAGE_EXEMPTIONS)
+                    ->label(__('Manage exemptions'))
+                    ->description(__('Take a page out of the review cycle, or put it back, on pages they may edit. An exempt page has no review date, gets no reminders, and is never expired.'));
 
                 Permission::register(Auth\Permissions::CONFIGURE_EXPIRY)
                     ->label(__('Configure expiry actions'))

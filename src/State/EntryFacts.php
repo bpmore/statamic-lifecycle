@@ -22,9 +22,8 @@ final readonly class EntryFacts
      *                                 interval name, a number of days, or null
      * @param  ?string  $lastAuthorId  who last modified the entry, only if that
      *                                 person still exists
-     * @param  bool  $exempt  outside the cycle altogether. Where this is
-     *                        recorded is not yet decided (see PROGRESS.md);
-     *                        the computation only needs to know.
+     * @param  bool  $exempt  outside the cycle altogether: the entry's
+     *                        review_exempt field, read like the others
      */
     public function __construct(
         public string $entryId,

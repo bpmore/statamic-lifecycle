@@ -103,8 +103,8 @@ accurate.
 
 ## Features list
 
-- Owner, review interval and review-by date on every entry, added without
-  editing a blueprint
+- Owner, review interval, review-by date and an exemption on every entry,
+  added without editing a blueprint
 - *Mark reviewed*: an append-only attestation record that never writes to the
   entry
 - A baseline pass that spreads first reviews across twelve months and seeds
@@ -121,7 +121,7 @@ accurate.
   (PDF/UA-1 validated)
 - `{{ lifecycle:last_reviewed }}`, `{{ lifecycle:next_review }}`,
   `{{ lifecycle:is_stale }}`
-- Four permissions; expiry configuration stays admin-only
+- Five permissions; expiry configuration stays admin-only
 - No database required: the addon brings its own SQLite file, or uses yours
 - Reports a Freshness band to Site Weather
 
