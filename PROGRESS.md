@@ -1,3 +1,5 @@
+ALL TASKS COMPLETE
+
 # PROGRESS — Lifecycle
 
 **Spec:** `lifecycle-build-spec.md` · **Package:** `bpmore/statamic-lifecycle` · **$99**
@@ -61,7 +63,7 @@
 - [x] Editing counts as a review — a config option, default off (spec §11)
 - [x] `lifecycle:doctor`: install state, config validity, orphans, never-baselined count (spec §11)
 - [x] A notice in the CP until baselining is complete, saying what happened and how to adjust (spec §2)
-- [ ] CHANGELOG, docs, tag 1.1.0
+- [x] CHANGELOG, docs, tag 1.1.0
 
 ## Notes
 <!-- Record surprises, decisions and blockers here. If a task is wrong or blocked, write why and stop. -->
@@ -1126,3 +1128,18 @@
   when first hit this run; `herd restart` did not bring 8.4 up. Left alone — which PHP Herd
   serves is the user's setting — and worked around with the built-in server.
 - 570 tests, Pint clean, bundle rebuilt (`cp-IoIExcOb.js`) and published to the host.
+
+### 2026-10-19 — 1.1.0
+- The *Unreleased* section became `1.1.0 — 2026-10-19`; its upgrade line (run `lifecycle:install`
+  for the `source` column) stands. The listing's features gained the three listing actions and
+  the doctor. The docs were updated task by task. `git archive` of the release ships 184 files
+  and none of tests, tools, PROGRESS, SPEC or LISTING (`.gitattributes` export-ignore, checked
+  on the archive, not on `git status`).
+- Final state: 570 tests pass, 1 skipped (veraPDF), Pint clean, bundle committed. Tagged
+  `v1.1.0` on the commit that includes this note, the convention the siblings use. Not pushed:
+  pushing is not this run's to do. Five Phase 8 commits sit ahead of `origin/main`.
+- Seen on the remote: the last *Tests* run on main succeeded; the two failures since are
+  Dependabot's own update jobs (league/commonmark, source-map-js), not the suite. Worth a look
+  when pushing, since the matrix will run on 1.1.0.
+- **Every task in this file is done, again.** Spec §0–§11 re-read against the code: the five
+  gaps found this morning are closed; nothing else in the spec is unbuilt.

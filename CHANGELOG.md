@@ -4,7 +4,7 @@ What changed in each release, and what you have to do about it.
 
 Versions are `MAJOR.MINOR.PATCH`.
 
-## Unreleased
+## 1.1.0 — 2026-10-19
 
 Run `php please lifecycle:install` after updating: one new migration (a
 `source` column on the review record). The new field appears on its own,

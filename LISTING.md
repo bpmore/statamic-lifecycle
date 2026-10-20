@@ -111,6 +111,8 @@ accurate.
   inferred owners
 - Bulk owner assignment by branch, collection, blueprint, author, taxonomy
   term, CSV, or from the entry listing; an owner of last resort per site
+- *Set review interval*, *Exempt from review* and *Clear exemption* as
+  listing actions, for one page or many
 - Digest reminders with escalation, a quiet window, and per-person frequency
 - Expiry actions — banner variable, noindex, unpublish — off by default,
   per collection, behind six rails and a dry run
@@ -118,7 +120,8 @@ accurate.
   the backlog unless asked
 - Dashboards by collection, site and owner; "My content"; a dashboard widget
 - `lifecycle:report` as tables, JSON, CSV, accessible HTML and tagged PDF
-  (PDF/UA-1 validated)
+  (PDF/UA-1 validated); `lifecycle:doctor` to check install, config,
+  content and scheduler in one run
 - `{{ lifecycle:last_reviewed }}`, `{{ lifecycle:next_review }}`,
   `{{ lifecycle:is_stale }}`
 - Five permissions; expiry configuration stays admin-only
