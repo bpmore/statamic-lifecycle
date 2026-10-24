@@ -1,12 +1,16 @@
 # Lifecycle
 
-**Content review dates, ownership, attestation and expiry for Statamic 6.**
+**Know who owns every page, when a person last confirmed it was accurate, and
+what is overdue.**
 
-Every page on an institutional site has someone who is supposed to know whether
-it is still true, and almost none of them have a record of when that person last
-checked. Lifecycle gives each entry an owner, a review interval and a next review
-date; lets the owner record that they reviewed it; and keeps that record where an
-auditor can find it.
+Lifecycle gives every entry on a Statamic 6 site an owner and a review date,
+records each time a named person confirms a page is still accurate, and reminds
+people when reviews come due. It is built for sites where that record matters:
+universities, hospitals, councils, anywhere an audit, a records request or an
+accreditation visit asks *when was this page last checked, and by whom?*
+
+Statamic 6 · PHP 8.2+ · no database required · nothing on the live site
+changes unless you turn it on.
 
 ```
 php please lifecycle:report
@@ -17,34 +21,42 @@ php please lifecycle:report
 review were reviewed in the last 12 months. 412 are overdue.
 ```
 
+## What it does
+
+- **Day one on a 40,000-page site is a schedule, not a wall of red.** A
+  baseline pass spreads first review dates across twelve months, oldest
+  content first, and guesses owners from last authors, flagged as guesses.
+  Nothing is overdue the morning after you install it.
+- **Every page has an owner, assigned in bulk.** By structure branch,
+  collection, blueprint, author, taxonomy term, a CSV a department sends back,
+  or a selection in the entry listing, with an owner of last resort so nothing
+  is ever ownerless. See
+  [assigning owners](https://github.com/bpmore/statamic-lifecycle/blob/main/DOCUMENTATION.md#assigning-owners).
+- **A review is a record, not an edit.** *Mark reviewed* puts who, when, an
+  outcome and a note on an append-only history and **never writes to the
+  entry**: no revision, no git noise, no re-triggered checks.
+- **One reminder email per person.** A digest of everything they owe, with
+  escalation to a department contact, quiet weekends, and each person's own
+  frequency. Never 300 emails for 300 pages.
+- **Stale content retires safely, if you want it to.** Notify-only by default.
+  A collection can opt into a banner, a `noindex` or unpublishing, behind six
+  safety rails, a dry run, and one-click undo. See
+  [expiry actions](https://github.com/bpmore/statamic-lifecycle/blob/main/DOCUMENTATION.md#expiry-actions).
+- **Publishing can require an owner and a review date.** Opt-in per
+  collection, and never applied to content that already exists unless you
+  say so.
+- **Pages fixed in time can be exempted.** Annual reports, minutes, archives:
+  out of the cycle, still owned.
+- **Proof on demand.** Dashboards by collection, site and owner; "My content"
+  for each owner; a dashboard widget with the thirty-day trend; and a
+  governance report as CSV, JSON, HTML or a tagged PDF that passes PDF/UA
+  validation.
+- **"Last reviewed: March 2026" on the front end**, from three Antlers tags,
+  so readers can see the work too.
+
 **Lifecycle governs content that is already published.** Drafts, approvals and
 editorial sign-off before publish are Statamic's own territory, and this addon
 stays out of it.
-
-## What it does
-
-- **Baselines a 40,000-page site without despair.** Existing content is given
-  first review dates spread across a horizon (twelve months by default), oldest
-  first. Nothing is overdue on day one.
-- **Assigns owners in bulk** — by structure branch, collection, blueprint,
-  author, taxonomy term, from a CSV, or from the entry listing — with an
-  owner of last resort so nothing is ever ownerless. See
-  [bulk assignment](https://github.com/bpmore/statamic-lifecycle/blob/main/DOCUMENTATION.md#assigning-owners).
-- **Records attestations.** *Mark reviewed* puts who, when, an outcome and a
-  note on an append-only record, and **never writes to the entry**: no
-  revision, no git noise, no re-triggered checks. This is the record an
-  audit, a records request or an accreditation review asks for.
-- **Reminds people, in digests.** One email per person listing everything
-  they owe, on a schedule, with escalation and a quiet window. Never 300
-  emails for 300 pages.
-- **Retires stale content, if you ask it to.** Notify-only until a
-  collection opts in; then a banner variable, a `noindex`, or unpublishing —
-  behind a circuit breaker, a daily cap, a notice period, a never-touch list,
-  a navigation check, and a log with one-click revert. See
-  [expiry actions](https://github.com/bpmore/statamic-lifecycle/blob/main/DOCUMENTATION.md#expiry-actions).
-- **Reports.** Dashboards by collection, site and owner; "My content" for
-  each owner; a dashboard widget; and a governance report as console tables,
-  JSON, CSV, accessible HTML or a tagged PDF that passes PDF/UA validation.
 
 ## Installing
 
@@ -115,10 +127,6 @@ answer. Say which Statamic and Lifecycle versions you are on and, for a
 bug, what `php please lifecycle:doctor` printed.
 
 ## Development
-
-The addon is developed on its own and linked into a host site through a Composer
-path repository, which is the layout Statamic recommends for an addon reused
-across projects.
 
 ```
 composer install
