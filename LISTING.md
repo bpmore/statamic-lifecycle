@@ -53,10 +53,11 @@ Lifecycle keeps it.
 review were reviewed in the last 12 months. 412 are overdue.
 ```
 
-**Every page gets an owner, a review interval and a next review date.** Three
-fields in the sidebar of every entry, added on their own — nobody edits sixty
-blueprints. An owner is content: it lives in the entry, shows in git and travels
-with revisions.
+**Every page gets an owner, a review interval and a next review date.** Four
+fields in the sidebar of every entry — owner, interval, a review-by deadline,
+and an exemption for pages fixed at a point in time — added on their own;
+nobody edits sixty blueprints. An owner is content: it lives in the entry,
+shows in git and travels with revisions.
 
 **Marking a page reviewed never touches the entry.** Who, when, an outcome and a
 note go on an append-only record in the addon's own tables. No revision, no git
@@ -159,7 +160,7 @@ In order; the marketplace treats the first as primary.
 | | |
 |---|---|
 | **Utility** | Primary, matching the accessibility line, so browsing Utility shows the suite together. |
-| **CLI** | Seven commands — baseline, recompute, assign, notify, expire, report, install — most of them with a dry run. |
+| **CLI** | Eight commands — install, baseline, recompute, assign, notify, expire, report, doctor — most of them with a dry run. |
 | **Widget** | The dashboard widget: my overdue count, the site's, the thirty-day trend. |
 | **Tag** | Three Antlers tags and a pair. |
 
