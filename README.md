@@ -29,7 +29,7 @@ stays out of it.
 - **Assigns owners in bulk** — by structure branch, collection, blueprint,
   author, taxonomy term, from a CSV, or from the entry listing — with an
   owner of last resort so nothing is ever ownerless. See
-  [bulk assignment](DOCUMENTATION.md#assigning-owners).
+  [bulk assignment](https://github.com/bpmore/statamic-lifecycle/blob/main/DOCUMENTATION.md#assigning-owners).
 - **Records attestations.** *Mark reviewed* puts who, when, an outcome and a
   note on an append-only record, and **never writes to the entry**: no
   revision, no git noise, no re-triggered checks. This is the record an
@@ -41,7 +41,7 @@ stays out of it.
   collection opts in; then a banner variable, a `noindex`, or unpublishing —
   behind a circuit breaker, a daily cap, a notice period, a never-touch list,
   a navigation check, and a log with one-click revert. See
-  [expiry actions](DOCUMENTATION.md#expiry-actions).
+  [expiry actions](https://github.com/bpmore/statamic-lifecycle/blob/main/DOCUMENTATION.md#expiry-actions).
 - **Reports.** Dashboards by collection, site and owner; "My content" for
   each owner; a dashboard widget; and a governance report as console tables,
   JSON, CSV, accessible HTML or a tagged PDF that passes PDF/UA validation.
@@ -82,18 +82,18 @@ If it surprises you, the config is wrong, not the content.
 
 | | |
 |---|---|
-| [Installing and day one](DOCUMENTATION.md#installing) | Tables, the baseline, the scheduler |
-| [Owners, intervals and dates](DOCUMENTATION.md#the-four-fields) | What lives in the entry and what lives in the tables |
-| [Attestation](DOCUMENTATION.md#marking-a-page-reviewed) | The record that makes this worth paying for |
-| [Assigning owners](DOCUMENTATION.md#assigning-owners) | Branch, collection, blueprint, author, term, CSV, listing |
-| [Reminders](DOCUMENTATION.md#reminders) | Digests, escalation, quiet days, each person's own frequency |
-| [Expiry actions](DOCUMENTATION.md#expiry-actions) | The six rails, the dry run, putting things back |
-| [The gate](DOCUMENTATION.md#the-gate) | Requiring an owner and a review date before publishing |
-| [The governance report](DOCUMENTATION.md#the-governance-report) | Console, JSON, CSV, HTML, tagged PDF |
-| [On the front end](DOCUMENTATION.md#on-the-front-end) | `{{ lifecycle:last_reviewed }}` and friends |
-| [Permissions](DOCUMENTATION.md#permissions) | Five, and what each opens |
-| [Commands](DOCUMENTATION.md#commands) | All of them, with their options |
-| [Configuration](DOCUMENTATION.md#configuration) | Every setting, with its default |
+| [Installing and day one](https://github.com/bpmore/statamic-lifecycle/blob/main/DOCUMENTATION.md#installing) | Tables, the baseline, the scheduler |
+| [Owners, intervals and dates](https://github.com/bpmore/statamic-lifecycle/blob/main/DOCUMENTATION.md#the-four-fields) | What lives in the entry and what lives in the tables |
+| [Attestation](https://github.com/bpmore/statamic-lifecycle/blob/main/DOCUMENTATION.md#marking-a-page-reviewed) | The record that makes this worth paying for |
+| [Assigning owners](https://github.com/bpmore/statamic-lifecycle/blob/main/DOCUMENTATION.md#assigning-owners) | Branch, collection, blueprint, author, term, CSV, listing |
+| [Reminders](https://github.com/bpmore/statamic-lifecycle/blob/main/DOCUMENTATION.md#reminders) | Digests, escalation, quiet days, each person's own frequency |
+| [Expiry actions](https://github.com/bpmore/statamic-lifecycle/blob/main/DOCUMENTATION.md#expiry-actions) | The six rails, the dry run, putting things back |
+| [The gate](https://github.com/bpmore/statamic-lifecycle/blob/main/DOCUMENTATION.md#the-gate) | Requiring an owner and a review date before publishing |
+| [The governance report](https://github.com/bpmore/statamic-lifecycle/blob/main/DOCUMENTATION.md#the-governance-report) | Console, JSON, CSV, HTML, tagged PDF |
+| [On the front end](https://github.com/bpmore/statamic-lifecycle/blob/main/DOCUMENTATION.md#on-the-front-end) | `{{ lifecycle:last_reviewed }}` and friends |
+| [Permissions](https://github.com/bpmore/statamic-lifecycle/blob/main/DOCUMENTATION.md#permissions) | Five, and what each opens |
+| [Commands](https://github.com/bpmore/statamic-lifecycle/blob/main/DOCUMENTATION.md#commands) | All of them, with their options |
+| [Configuration](https://github.com/bpmore/statamic-lifecycle/blob/main/DOCUMENTATION.md#configuration) | Every setting, with its default |
 
 ## The governance suite
 
@@ -131,6 +131,6 @@ npm install && npm run build   # control panel assets (the build is committed)
 
 Proprietary. One licence per production site; local development and CI are
 free. The source is published so it can be installed with Composer and
-inspected by the people who rely on it. See [LICENSE.md](LICENSE.md) — in
+inspected by the people who rely on it. See [LICENSE.md](https://github.com/bpmore/statamic-lifecycle/blob/main/LICENSE.md) — in
 particular what it says about the difference between "reviewed on 12 March"
 and "correct on 12 March".
