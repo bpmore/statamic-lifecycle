@@ -2,7 +2,7 @@ ALL TASKS COMPLETE
 
 # PROGRESS — Lifecycle
 
-**Spec:** `lifecycle-build-spec.md` · **Package:** `bpmore/statamic-lifecycle` · **$99**
+**Spec:** `lifecycle-build-spec.md` · **Package:** `bpmore/statamic-lifecycle` · **$79**
 **Rule:** do the next unfinished task only, then update this file, verify the build, and commit.
 
 ## Phase 1 — Foundations

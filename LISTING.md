@@ -15,13 +15,13 @@ accessibility, and forcing it into that family would misrepresent it. It anchors
 the second family — governance — beside the accessibility line.
 
 The subtitle carries "attestation" deliberately. Review dates and reminders are
-free-addon material; the attestation record is what makes this worth $99, and it
+free-addon material; the attestation record is what makes this worth $79, and it
 is the word an auditor, a records officer or an accreditation reviewer will
 search for.
 
 ## Price
 
-$99 per site.
+$79 per site.
 
 ## One-liner
 
