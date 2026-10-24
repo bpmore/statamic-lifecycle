@@ -4,6 +4,14 @@ What changed in each release, and what you have to do about it.
 
 Versions are `MAJOR.MINOR.PATCH`.
 
+## 1.1.1 — 2026-10-24
+
+Nothing to do on upgrade. No code changed.
+
+- The Composer download no longer carries files that only matter for
+  developing the addon: the contributor notes, and the test and formatter
+  configuration.
+
 ## 1.1.0 — 2026-10-19
 
 Run `php please lifecycle:install` after updating: one new migration (a

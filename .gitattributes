@@ -10,3 +10,7 @@
 /LISTING.md     export-ignore
 /run-build.sh   export-ignore
 /marketplace    export-ignore
+/CLAUDE.md      export-ignore
+/phpunit.xml    export-ignore
+/pint.json      export-ignore
+/AGENTS.md      export-ignore

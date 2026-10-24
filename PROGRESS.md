@@ -1143,3 +1143,14 @@ ALL TASKS COMPLETE
   when pushing, since the matrix will run on 1.1.0.
 - **Every task in this file is done, again.** Spec §0–§11 re-read against the code: the five
   gaps found this morning are closed; nothing else in the spec is unbuilt.
+
+### 2026-10-24 — 1.1.1: a cleaner download
+- Installing 1.1.0 from Packagist into a fresh site showed the download still carried `CLAUDE.md`
+  (local paths and the build workflow), `phpunit.xml` and `pint.json`. The marketplace review had
+  checked tests, tools and specs were excluded and missed these. Now export-ignored, with
+  `AGENTS.md` (an untracked file someone added locally; not committed, but excluded in case it
+  ever is). The archive drops from 184 files to 168. No code changed; tagged `v1.1.1`.
+- Packagist went live today (repo made public first). Its GitHub webhook is active, so the new
+  tag reaches Packagist on push. The three Dependabot alerts were fixed in the lock files
+  (05a737c; the dependency graph records the fixed versions) and are still waiting on
+  Dependabot's re-scan to close; they are visible only to the repo's admins.
