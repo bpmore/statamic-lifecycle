@@ -131,7 +131,7 @@ accurate.
 
 ## Requirements
 
-Statamic 6, PHP 8.2+. A database is optional; a browser is optional for the
+Statamic 6.34 or newer, PHP 8.2+. A database is optional; a browser is optional for the
 PDF export.
 
 ## Support

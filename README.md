@@ -9,7 +9,7 @@ people when reviews come due. It is built for sites where that record matters:
 universities, hospitals, councils, anywhere an audit, a records request or an
 accreditation visit asks *when was this page last checked, and by whom?*
 
-Statamic 6 · PHP 8.2+ · no database required · nothing on the live site
+Statamic 6.34+ · PHP 8.2+ · no database required · nothing on the live site
 changes unless you turn it on.
 
 ```
@@ -116,7 +116,7 @@ is installed it reports a **Freshness** band to the dashboard tile.
 
 ## Requirements
 
-PHP 8.2+, Statamic 6. A database is optional. A browser (for the PDF export)
+PHP 8.2+, Statamic 6.34 or newer. A database is optional. A browser (for the PDF export)
 is optional and degrades to a clear message rather than a failure.
 
 ## Support

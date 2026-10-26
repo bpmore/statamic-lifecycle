@@ -6,7 +6,6 @@ namespace Bpmore\StatamicLifecycle;
 
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Route;
-use Statamic\Contracts\Addons\SettingsRepository as SettingsRepositoryContract;
 use Statamic\Events\AddonSettingsSaved;
 use Statamic\Events\EntryBlueprintFound;
 use Statamic\Events\EntryCreated;
@@ -104,10 +103,6 @@ class ServiceProvider extends AddonServiceProvider
 
         $this->bootPermissions();
         $this->bootNavigation();
-
-        // Bound here, after Statamic's own binding: Statamic saves settings by
-        // slug and reads them by package name, and ours differ. See the class.
-        $this->app->bind(SettingsRepositoryContract::class, Settings\SettingsRepository::class);
 
         // The policy is built once per process from config and settings. When
         // the settings change, the next thing to ask gets a fresh one — which

@@ -23,7 +23,7 @@
     ],
     "require": {
         "php": "^8.2",
-        "statamic/cms": "^6.0",
+        "statamic/cms": "^6.34",
         "symfony/process": "^7.0 || ^8.0"
     },
     "require-dev": {
