@@ -1169,3 +1169,14 @@ ALL TASKS COMPLETE
 - **Open:** `--prefer-lowest` fails 32 tests, on `main` before this change too (same list, e.g.
   `BaselinePlanner`: "The horizon must be at least one day; got 0"). CI resolves only the newest
   versions, so nothing there catches it.
+
+### 2026-10-26: 1.2.1, day counts on older Carbon
+- The 32 `--prefer-lowest` failures noted under 1.2.0 had one cause. On Carbon 3.8.4, the
+  oldest the dependency tree allows, `CarbonImmutable::diff()` returns a `CarbonInterval` whose
+  `days` is `false`, and the `(int)` casts made it `0`. Five places counted days that way: the
+  baseline horizon, overdue days, days until due, and both reminder repeat checks.
+- `State\Days::between()` converts both ends to `DateTimeImmutable` and reads the native
+  interval's `days`. Lowest (PHP 8.2, Carbon 3.8.4, Statamic 6.34.0): 32 failed before, 0 after,
+  on the same install. Newest: 575 passed. PR #4; tagged `v1.2.1`.
+- **Open:** CI resolves only the newest versions. A `--prefer-lowest` job on PHP 8.2 would have
+  caught this.

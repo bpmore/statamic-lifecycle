@@ -4,7 +4,7 @@ What changed in each release, and what you have to do about it.
 
 Versions are `MAJOR.MINOR.PATCH`.
 
-## Unreleased
+## 1.2.1 - 2026-10-26
 
 Nothing to do on upgrade.
 
