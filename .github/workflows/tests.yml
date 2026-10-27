@@ -7,12 +7,19 @@ on:
 
 jobs:
   tests:
-    name: PHP ${{ matrix.php }}
+    name: PHP ${{ matrix.php }}${{ matrix.dependencies == 'lowest' && ', lowest dependencies' || '' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         php: ['8.2', '8.3', '8.4', '8.5']
+        dependencies: [highest]
+        # The oldest version of everything composer.json allows, on the oldest
+        # PHP. The other jobs only ever see the newest, which is how Carbon
+        # 3.8.4 counting every interval as zero days went unseen until 1.2.1.
+        include:
+          - php: '8.2'
+            dependencies: lowest
 
     steps:
       - uses: actions/checkout@v4
@@ -27,7 +34,7 @@ jobs:
       # newest PHP, where Laravel 13 is chosen. On 8.2 Laravel 13 cannot be
       # installed, so each PHP version resolves its own set.
       - name: Install dependencies
-        run: composer update --prefer-dist --no-interaction --no-progress
+        run: composer update --prefer-dist --no-interaction --no-progress ${{ matrix.dependencies == 'lowest' && '--prefer-lowest --prefer-stable' || '' }}
 
       # This addon targets Statamic 6. Anything else resolving is a bug in the
       # constraints, and building against it would be building the wrong thing.
