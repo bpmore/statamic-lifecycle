@@ -8,6 +8,7 @@ use Bpmore\StatamicLifecycle\Entries\EntryFactsReader;
 use Bpmore\StatamicLifecycle\Owners\FallbackOwners;
 use Bpmore\StatamicLifecycle\State\BaselineCandidate;
 use Bpmore\StatamicLifecycle\State\BaselinePlanner;
+use Bpmore\StatamicLifecycle\State\Days;
 use Bpmore\StatamicLifecycle\State\EntryFacts;
 use Bpmore\StatamicLifecycle\State\LifecycleState;
 use Bpmore\StatamicLifecycle\State\OwnerSource;
@@ -73,7 +74,7 @@ class BaselineLifecycle extends Command
         $now = Carbon::now()->toImmutable();
         $today = $now->setTime(0, 0);
         // Calendar months, so twelve is a year whatever year it is.
-        $horizonDays = (int) $today->diff($today->modify("+{$horizon} months"))->days;
+        $horizonDays = Days::between($today, $today->modify("+{$horizon} months"));
 
         // ---- Gather -------------------------------------------------------
 

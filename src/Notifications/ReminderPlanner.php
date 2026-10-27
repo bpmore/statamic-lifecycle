@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Bpmore\StatamicLifecycle\Notifications;
 
+use Bpmore\StatamicLifecycle\State\Days;
 use DateTimeImmutable;
 
 /**
@@ -74,7 +75,7 @@ final class ReminderPlanner
         foreach ($entries as $entry) {
             $due = $entry->dueAt->setTime(0, 0);
             $key = $entry->entryId.'|'.$due->format('Y-m-d');
-            $daysUntil = (int) $today->diff($due)->days * ($due >= $today ? 1 : -1);
+            $daysUntil = Days::between($today, $due) * ($due >= $today ? 1 : -1);
 
             if ($daysUntil > 0) {
                 $stage = $this->schedule->stageFor($daysUntil);
@@ -133,6 +134,6 @@ final class ReminderPlanner
 
         $every = $this->schedule->overdueEvery;
 
-        return $every > 0 && (int) $last->setTime(0, 0)->diff($today)->days >= $every;
+        return $every > 0 && Days::between($last->setTime(0, 0), $today) >= $every;
     }
 }

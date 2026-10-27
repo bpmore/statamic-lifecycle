@@ -4,6 +4,17 @@ What changed in each release, and what you have to do about it.
 
 Versions are `MAJOR.MINOR.PATCH`.
 
+## Unreleased
+
+Nothing to do on upgrade.
+
+- **Day counts are right on older Carbon.** On a site with an older Carbon 3
+  release (3.8.4, for one), every count of days between two dates came out
+  as zero. `lifecycle:baseline` refused to run ("The horizon must be at
+  least one day"), overdue pages counted as zero days overdue, and reminder
+  timing was worked out from a count of zero days. Days are now counted the same way
+  whatever Carbon version a site has.
+
 ## 1.2.0 - 2026-10-26
 
 Update Statamic to 6.34 or newer first. Composer will not install this
