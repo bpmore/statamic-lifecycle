@@ -1154,3 +1154,18 @@ ALL TASKS COMPLETE
   tag reaches Packagist on push. The three Dependabot alerts were fixed in the lock files
   (05a737c; the dependency graph records the fixed versions) and are still waiting on
   Dependabot's re-scan to close; they are visible only to the repo's admins.
+
+### 2026-10-26: 1.2.0, addon settings left to Statamic
+- The settings override from Phase 8 (`Settings\SettingsRepository`, bound in `bootAddon()`) was
+  bound over Statamic's repository for every addon, after the Eloquent driver binds its own in
+  `register()`. A site keeping addon settings in a database had all of them moved to files once
+  Lifecycle was installed. Found by reading both providers, not reproduced on an Eloquent site.
+- Statamic 6.34.0 fixed the lookup upstream (statamic/cms#15495), so the override is gone and
+  `statamic/cms` is `^6.34`. Without the override on 6.31, five settings tests fail, which is why
+  the floor is 6.34 and not lower. A test now asserts the bound repository is Statamic's own.
+- Lock: `statamic/cms` 6.33.0 to 6.35.0 only. A wider update pulled 59 packages, `brick/math` to
+  1.0 among them, and was backed out. 571 passed; `resources/dist` unchanged by a rebuild. The
+  archive is 167 files (168 less the removed class). PR #2; tagged `v1.2.0`.
+- **Open:** `--prefer-lowest` fails 32 tests, on `main` before this change too (same list, e.g.
+  `BaselinePlanner`: "The horizon must be at least one day; got 0"). CI resolves only the newest
+  versions, so nothing there catches it.

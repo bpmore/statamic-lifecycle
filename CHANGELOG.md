@@ -4,7 +4,7 @@ What changed in each release, and what you have to do about it.
 
 Versions are `MAJOR.MINOR.PATCH`.
 
-## Unreleased
+## 1.2.0 - 2026-10-26
 
 Update Statamic to 6.34 or newer first. Composer will not install this
 release on anything older.
