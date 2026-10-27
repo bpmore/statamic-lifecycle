@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Bpmore\StatamicLifecycle\Notifications;
 
 use Bpmore\StatamicLifecycle\Models\Notification;
+use Bpmore\StatamicLifecycle\State\Days;
 use DateTimeImmutable;
 use Illuminate\Support\Facades\Mail;
 use Statamic\Facades\Entry;
@@ -120,7 +121,7 @@ final class Notifier
 
                 if ($last !== null) {
                     $last = new DateTimeImmutable((string) $last);
-                    $days = (int) $last->setTime(0, 0)->diff($today->setTime(0, 0))->days;
+                    $days = Days::between($last->setTime(0, 0), $today->setTime(0, 0));
 
                     if ($days < 7) {
                         $held[$digest->email] = 'gets a weekly digest, and had one '.($days === 0 ? 'today' : ($days === 1 ? 'yesterday' : $days.' days ago'));

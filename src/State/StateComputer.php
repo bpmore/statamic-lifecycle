@@ -123,7 +123,7 @@ final readonly class StateComputer
                 : Status::Fresh;
         }
 
-        $overdueDays = (int) $due->diff($today)->days;
+        $overdueDays = Days::between($due, $today);
 
         return $overdueDays >= $this->policy->expiredAfterDays
             ? Status::Expired
