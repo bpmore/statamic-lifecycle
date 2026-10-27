@@ -10,6 +10,8 @@ use Bpmore\StatamicLifecycle\StateRecomputer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
+use Statamic\Addons\FileSettingsRepository;
+use Statamic\Contracts\Addons\SettingsRepository;
 use Statamic\Facades\Addon;
 use Statamic\Facades\Collection;
 use Statamic\Facades\Entry;
@@ -154,10 +156,19 @@ describe('what it does', function () {
 });
 
 it('reads back what it saved, whatever the package is called', function () {
-    // Statamic 6.32 saves by slug and reads by package suffix. Ours differ.
+    // Before 6.34, Statamic saved by slug and read by package suffix, and
+    // ours differ. 6.34 reads by slug too, which is why it is the floor.
     $settings = Addon::get(FallbackOwners::PACKAGE)->settings();
     $settings->set('owner_of_last_resort_default', 'webmaster')->save();
 
     expect($settings->path())->toEndWith('addons/lifecycle.yaml')
         ->and(Addon::get(FallbackOwners::PACKAGE)->settings()->get('owner_of_last_resort_default'))->toBe('webmaster');
+});
+
+it('leaves where addon settings are kept to Statamic', function () {
+    // An override here once replaced the repository for every addon, so a
+    // site storing addon settings in a database (the Eloquent driver) lost
+    // them all to files the moment Lifecycle was installed.
+    expect(get_class(app(SettingsRepository::class)))
+        ->toBe(FileSettingsRepository::class);
 });

@@ -4,6 +4,18 @@ What changed in each release, and what you have to do about it.
 
 Versions are `MAJOR.MINOR.PATCH`.
 
+## Unreleased
+
+Update Statamic to 6.34 or newer first. Composer will not install this
+release on anything older.
+
+- **Addon settings stay where your site keeps them.** Lifecycle used to
+  replace the place Statamic stores addon settings, for every addon on the
+  site, to work around a Statamic bug. On a site that keeps addon settings
+  in a database (the Eloquent driver), that moved every addon back to files,
+  and their saved settings looked empty. Statamic 6.34 fixed the bug, so the
+  workaround is gone and Lifecycle needs 6.34.
+
 ## 1.1.1 — 2026-10-24
 
 Nothing to do on upgrade. No code changed.
