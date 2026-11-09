@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Bpmore\StatamicLifecycle;
 
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Route;
 use Statamic\Events\AddonSettingsSaved;
 use Statamic\Events\EntryBlueprintFound;
@@ -30,6 +31,7 @@ class ServiceProvider extends AddonServiceProvider
         EntrySaving::class => [
             // First, so the note is taken whether or not the gate refuses.
             Listeners\RecordEditAsReview::class.'@noteDirty',
+            Listeners\RefuseUnpermittedLifecycleChanges::class,
             Listeners\RefuseUnlessOwnedAndDated::class,
         ],
         EntryCreated::class => [
@@ -103,6 +105,11 @@ class ServiceProvider extends AddonServiceProvider
 
         $this->bootPermissions();
         $this->bootNavigation();
+
+        // For the Markdown mails: what `{{ }}` does, after what Markdown
+        // needs (Notifications\MarkdownText). Namespaced like the sibling
+        // addons' directives so two addons never define the same word.
+        Blade::directive('lifecycleText', fn (string $expression): string => "<?php echo e(\\Bpmore\\StatamicLifecycle\\Notifications\\MarkdownText::escape({$expression})); ?>");
 
         // The policy is built once per process from config and settings. When
         // the settings change, the next thing to ask gets a fresh one — which

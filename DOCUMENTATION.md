@@ -238,6 +238,8 @@ Five, in their own group on the Permissions screen:
 - **Manage exemptions** — take a page out of the review cycle, or put it back, on pages the person may edit.
 - **Configure expiry actions** — put back what an automated expiry action changed. Keep it to administrators.
 
+**Assign owners** and **Manage exemptions** cover the sidebar fields as well as the bulk actions: without the permission, *Content owner* and *Exempt from review* are shown read-only in the entry editor, and a save that changes either is refused with a message beside the field. Leaving them as they were, and editing the rest of the page, needs no permission of Lifecycle's.
+
 Everyone signed in sees their own content — "My content", the sidebar panel, the widget's "Yours" — without any of them. Turning expiry actions on is done in `config/lifecycle.php`, by whoever deploys the site, and nowhere in the control panel. Super users pass everything, as they do in Statamic.
 
 ## Site Weather

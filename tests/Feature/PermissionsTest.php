@@ -12,13 +12,16 @@ use Bpmore\StatamicLifecycle\Widgets\Lifecycle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Testing\TestResponse;
+use Illuminate\Validation\ValidationException;
 use Statamic\CP\Navigation\Nav as StatamicNav;
+use Statamic\Facades\Blink;
 use Statamic\Facades\Collection;
 use Statamic\Facades\CP\Nav;
 use Statamic\Facades\Entry;
 use Statamic\Facades\Permission;
 use Statamic\Facades\Role;
 use Statamic\Facades\User;
+use Statamic\Facades\YAML;
 
 /**
  * The permissions (spec §8), and what each one opens. Roles are real
@@ -54,6 +57,16 @@ afterEach(function () {
     }
     Carbon::setTestNow();
 });
+
+/**
+ * A field of the page as it is on disk. After a refused save the cached
+ * entry object has already been handed the refused values (the array cache
+ * returns the same instance); the file is what was, and was not, written.
+ */
+function stored(string $field): mixed
+{
+    return YAML::file(Entry::find('page')->path())->parse()[$field] ?? null;
+}
 
 function runAction(string $action, array $values = []): TestResponse
 {
@@ -151,6 +164,82 @@ describe('assign owners', function () {
         $this->actingAs(($this->userWith)(['attest reviews']));
         runAction('assign_owner', ['owner' => [$alice->id()]])->assertForbidden();
     });
+
+    it('is what the sidebar field asks for too: read-only without it, and a changed owner refused on save', function () {
+        $alice = ($this->userWith)(['assign owners']);
+        $editor = ($this->userWith)(['attest reviews']);
+
+        // The field is drawn read-only for someone without the permission,
+        // the way Statamic draws the author field. Blink caches the blueprint
+        // per entry for a request, so each look is a fresh request's.
+        Blink::flush();
+        $this->actingAs($editor);
+        expect(Entry::find('page')->blueprint()->field('content_owner')->visibility())->toBe('read_only')
+            ->and(Entry::find('page')->blueprint()->field('review_interval')->visibility())->toBe('visible');
+        Blink::flush();
+
+        $this->actingAs($alice);
+        expect(Entry::find('page')->blueprint()->field('content_owner')->visibility())->toBe('visible');
+        Blink::flush();
+
+        // Read-only is what the form draws; the request can still carry a
+        // value. A changed owner is refused, beside the field.
+        $this->actingAs($editor)
+            ->patchJson(cp_route('collections.entries.update', ['collection' => 'pages', 'entry' => 'page']), [
+                'title' => 'Page', 'slug' => 'page', 'content_owner' => [$editor->id()], '_localized' => [],
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['content_owner' => 'assign owners']);
+        expect(stored('content_owner'))->toBeNull();
+
+        // Leaving the owner as it was is editing, and editing needs no
+        // permission of ours.
+        $this->actingAs($alice);
+        runAction('assign_owner', ['owner' => [$alice->id()]])->assertOk();
+        $this->actingAs($editor)
+            ->patchJson(cp_route('collections.entries.update', ['collection' => 'pages', 'entry' => 'page']), [
+                'title' => 'Page, edited', 'slug' => 'page', 'content_owner' => [$alice->id()], '_localized' => [],
+            ])
+            ->assertOk();
+        expect(stored('title'))->toBe('Page, edited')
+            ->and(stored('content_owner'))->toBe($alice->id());
+
+        // Clearing it is a change too.
+        $this->actingAs($editor)
+            ->patchJson(cp_route('collections.entries.update', ['collection' => 'pages', 'entry' => 'page']), [
+                'title' => 'Page', 'slug' => 'page', 'content_owner' => [], '_localized' => [],
+            ])
+            ->assertStatus(422);
+        expect(stored('content_owner'))->toBe($alice->id());
+
+        // Someone with the permission changes it from the sidebar as well.
+        $this->actingAs($alice)
+            ->patchJson(cp_route('collections.entries.update', ['collection' => 'pages', 'entry' => 'page']), [
+                'title' => 'Page', 'slug' => 'page', 'content_owner' => [$editor->id()], '_localized' => [],
+            ])
+            ->assertOk();
+        expect(stored('content_owner'))->toBe($editor->id());
+
+        // And a new entry cannot arrive with an owner chosen by someone who
+        // may not choose one: there is nothing stored to compare with, so
+        // any owner is a change.
+        $this->actingAs($editor);
+        $refused = null;
+
+        try {
+            Entry::make()->collection('pages')->slug('new-page')->data(['title' => 'New page', 'content_owner' => $editor->id()])->save();
+        } catch (ValidationException $refused) {
+        }
+
+        expect($refused?->errors())->toHaveKey('content_owner')
+            ->and(Entry::query()->where('slug', 'new-page')->count())->toBe(0);
+
+        // With nobody signed in there is nobody to hold back: a script
+        // writes what it writes.
+        auth()->logout();
+        Entry::find('page')->set('content_owner', $alice->id())->save();
+        expect(stored('content_owner'))->toBe($alice->id());
+    });
 });
 
 describe('manage exemptions', function () {
@@ -164,6 +253,42 @@ describe('manage exemptions', function () {
         $this->actingAs(($this->userWith)(['attest reviews', 'assign owners', 'view lifecycle', 'configure expiry actions']));
         runAction('exempt')->assertForbidden();
         expect(Entry::find('page')->get('review_exempt'))->toBeNull();
+    });
+
+    it('is what the sidebar toggle asks for too: read-only without it, and a flipped toggle refused on save', function () {
+        $manager = ($this->userWith)(['manage exemptions']);
+        $editor = ($this->userWith)(['assign owners']);
+
+        Blink::flush();
+        $this->actingAs($editor);
+        expect(Entry::find('page')->blueprint()->field('review_exempt')->visibility())->toBe('read_only');
+        Blink::flush();
+
+        $this->actingAs($manager);
+        expect(Entry::find('page')->blueprint()->field('review_exempt')->visibility())->toBe('visible');
+        Blink::flush();
+
+        $update = fn (array $values) => $this->patchJson(
+            cp_route('collections.entries.update', ['collection' => 'pages', 'entry' => 'page']),
+            ['title' => 'Page', 'slug' => 'page', '_localized' => []] + $values,
+        );
+
+        $this->actingAs($editor);
+        $update(['review_exempt' => true])->assertStatus(422)->assertJsonValidationErrors(['review_exempt' => 'manage exemptions']);
+        expect(stored('review_exempt'))->toBeNull();
+
+        // Not exempt is the absence of the line; sending false for a page
+        // with no line is not a change.
+        $update(['review_exempt' => false])->assertOk();
+
+        $this->actingAs($manager);
+        $update(['review_exempt' => true])->assertOk();
+        expect(stored('review_exempt'))->toBeTrue();
+
+        $this->actingAs($editor);
+        $update(['review_exempt' => true])->assertOk();
+        $update(['review_exempt' => false])->assertStatus(422);
+        expect(stored('review_exempt'))->toBeTrue();
     });
 });
 

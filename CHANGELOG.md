@@ -4,6 +4,31 @@ What changed in each release, and what you have to do about it.
 
 Versions are `MAJOR.MINOR.PATCH`.
 
+## Unreleased
+
+Nothing to do on upgrade.
+
+- **The permissions cover the sidebar fields, not only the bulk actions.**
+  *Content owner* and *Exempt from review* were ordinary editable fields for
+  anyone who could edit the entry, while **Assign owners** and **Manage
+  exemptions** were asked only by the Assign owner, Exempt and Clear
+  exemption actions. Now, without the permission, the field is shown
+  read-only in the entry editor, and a save that changes it (from the form
+  or by a request written by hand) is refused with a message beside the
+  field. Saving the page with the field as it was is still editing, and
+  needs no permission of Lifecycle's. Commands, queued jobs and the addon's
+  own writes are unaffected.
+- **Titles and names are printed as text in the reminder emails.** The
+  digest and the circuit-breaker alert are Markdown mails, and a page title
+  containing Markdown (a bracketed link, say) was rendered as Markdown,
+  next to the real "Review it" link. Titles, collection names, people's
+  names and the site name are now escaped for Markdown as well as HTML.
+- **The PDF report is rendered from a private directory.** The HTML handed
+  to the browser was written beside a `tempnam()` file in the shared system
+  temp directory, under a name nothing had reserved. It is now written
+  inside a directory created for that one render with mode 0700, and both
+  are removed afterwards.
+
 ## 1.2.1 - 2026-10-26
 
 Nothing to do on upgrade.

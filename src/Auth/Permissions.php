@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Bpmore\StatamicLifecycle\Auth;
 
+use Bpmore\StatamicLifecycle\Blueprint\LifecycleFields;
 use Statamic\Contracts\Auth\User;
 use Statamic\Contracts\Entries\Entry;
 
@@ -64,5 +65,22 @@ final class Permissions
     public static function mayPutBack(?User $user, Entry $entry): bool
     {
         return $user !== null && (bool) $user->can(self::CONFIGURE_EXPIRY) && (bool) $user->can('edit', $entry);
+    }
+
+    /**
+     * The authored fields a permission stands in front of. The bulk actions
+     * ask these permissions; the sidebar sets the same fields, so it has to
+     * ask them too (AddLifecycleFieldsToBlueprint shows them read-only,
+     * RefuseUnpermittedLifecycleChanges refuses a change on save). Interval
+     * and review-by are any editor's to set, as the interval action is.
+     *
+     * @return array<string, string> field handle => permission
+     */
+    public static function guardedFields(): array
+    {
+        return [
+            LifecycleFields::CONTENT_OWNER => self::ASSIGN_OWNERS,
+            LifecycleFields::REVIEW_EXEMPT => self::MANAGE_EXEMPTIONS,
+        ];
     }
 }

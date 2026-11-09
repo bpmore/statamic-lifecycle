@@ -59,6 +59,14 @@ it('says in the email what was refused, and what to do', function () {
         ->and($html)->toContain('3 of 20 entries (15%)')
         ->and($html)->toContain('expiry.circuit_breaker.max_share')
         ->and((new TripAlertMail([new Trip('news', 120, 1000, 0.10)]))->envelope()->subject)->toBe('Lifecycle refused to change news — nothing was touched');
+
+    // A collection handle is a slug, but the mail is Markdown and takes no
+    // chances with what it prints as text.
+    $odd = (new TripAlertMail([new Trip('news [x](https://elsewhere.example) **loud**', 120, 1000, 0.10)]))->render();
+
+    expect($odd)->not->toContain('elsewhere.example"')
+        ->and($odd)->not->toContain('<strong>loud</strong>')
+        ->and($odd)->toContain('news [x](https://elsewhere.example) **loud**');
 });
 
 it('logs, loudly, when there is nobody to tell', function () {

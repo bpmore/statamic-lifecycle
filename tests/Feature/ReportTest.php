@@ -184,6 +184,57 @@ describe('the PDF', function () {
             ->assertExitCode(1);
     });
 
+    it('hands the browser the HTML from a private directory of its own, and leaves nothing behind', function () {
+        // A browser that prints nothing and notes what it was asked to
+        // print: where the HTML was, who could read that directory, and what
+        // else was in it. Run through this PHP, so the test is the same on
+        // every machine. Through a shell wrapper, because a shebang cannot
+        // name a PHP whose path has a space in it, as Herd's does.
+        $script = ($this->tempFile)('php');
+        $browser = ($this->tempFile)('sh');
+        file_put_contents($browser, "#!/bin/sh\nexec ".escapeshellarg(PHP_BINARY).' '.escapeshellarg($script).' "$@"'."\n");
+        file_put_contents($script, <<<'PHP'
+            <?php
+            $out = $source = null;
+            foreach ($argv as $arg) {
+                if (str_starts_with($arg, '--print-to-pdf=')) { $out = substr($arg, strlen('--print-to-pdf=')); }
+                if (str_starts_with($arg, 'file://')) { $source = substr($arg, strlen('file://')); }
+            }
+            file_put_contents($out.'.seen', json_encode([
+                'source' => $source,
+                'html' => file_get_contents($source),
+                'directory' => dirname($source),
+                'mode' => fileperms(dirname($source)) & 0777,
+                'siblings' => array_map('basename', glob(dirname($source).'/*')),
+            ]));
+            file_put_contents($out, '%PDF-1.4 printed by the fake browser');
+            PHP);
+        chmod($browser, 0755);
+        $destination = ($this->tempFile)('pdf');
+
+        (new ChromePdfRenderer($browser))->render('<p>the report</p>', $destination);
+
+        $seen = json_decode((string) file_get_contents($destination.'.seen'), true);
+
+        expect($seen['html'])->toBe('<p>the report</p>')
+            // Not a sibling of a tempnam() file in the shared temp directory:
+            // inside a directory made for this one render, that only the
+            // user running PHP can enter.
+            ->and(dirname($seen['directory']))->toBe(rtrim(sys_get_temp_dir(), '/'))
+            ->and(basename($seen['directory']))->toStartWith('lifecycle-report-')
+            ->and($seen['mode'])->toBe(0700)
+            ->and($seen['siblings'])->toBe(['report.html'])
+            // And gone afterwards, the HTML and the directory both.
+            ->and(is_file($seen['source']))->toBeFalse()
+            ->and(is_dir($seen['directory']))->toBeFalse()
+            ->and(file_get_contents($destination))->toStartWith('%PDF-1.4 printed by the fake browser');
+
+        @unlink($browser);
+        @unlink($script);
+        @unlink($destination);
+        @unlink($destination.'.seen');
+    });
+
     it('is tagged, titled, language-tagged and carries the PDF/UA metadata', function () {
         $path = ($this->tempFile)('pdf');
 
