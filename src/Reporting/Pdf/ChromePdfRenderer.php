@@ -50,8 +50,13 @@ final class ChromePdfRenderer implements PdfRenderer
             );
 
         // Written to a file rather than passed as a data: URL, because a report
-        // over a large site is larger than a command line.
-        $source = tempnam(sys_get_temp_dir(), 'lifecycle-report').'.html';
+        // over a large site is larger than a command line. In a directory of
+        // its own that only this user can enter: the report names every page
+        // and every owner on the site, and the system temp directory is
+        // shared. (tempnam() reserved a name, and the .html written beside it
+        // was reserved by nobody.)
+        $directory = self::privateDirectory();
+        $source = $directory.'/report.html';
         file_put_contents($source, $html);
 
         try {
@@ -97,6 +102,7 @@ final class ChromePdfRenderer implements PdfRenderer
             }
         } finally {
             @unlink($source);
+            @rmdir($directory);
         }
 
         // Without this the report is a tagged PDF that still fails PDF/UA
@@ -126,6 +132,24 @@ final class ChromePdfRenderer implements PdfRenderer
 
         return ' This browser looks snap-confined, and a snap cannot write outside your home directory.'
             .' Choose a destination inside the site, such as storage/report.pdf.';
+    }
+
+    /**
+     * A fresh directory under the system temp directory, mode 0700. mkdir
+     * fails if the name is taken, so the creation is the reservation; the
+     * name is random enough that a second try is already unlikely.
+     */
+    private static function privateDirectory(): string
+    {
+        for ($attempt = 0; $attempt < 10; $attempt++) {
+            $directory = sys_get_temp_dir().'/lifecycle-report-'.bin2hex(random_bytes(8));
+
+            if (@mkdir($directory, 0700)) {
+                return $directory;
+            }
+        }
+
+        throw new RuntimeException('No private directory could be created under '.sys_get_temp_dir().' to render the PDF from.');
     }
 
     private function binary(): ?string

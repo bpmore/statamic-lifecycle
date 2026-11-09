@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use Bpmore\StatamicLifecycle\Models\EntryState;
 use Bpmore\StatamicLifecycle\Models\Notification;
+use Bpmore\StatamicLifecycle\Notifications\Digest;
+use Bpmore\StatamicLifecycle\Notifications\DigestItem;
 use Bpmore\StatamicLifecycle\Notifications\DigestMail;
 use Bpmore\StatamicLifecycle\Notifications\Notifier;
 use Bpmore\StatamicLifecycle\Notifications\Reminder;
@@ -131,6 +133,40 @@ describe('what the email says', function () {
         // Order in the email follows the order in the digest.
         expect(strpos($html, 'Page late'))->toBeLessThan(strpos($html, 'Page today'))
             ->and(strpos($html, 'Page today'))->toBeLessThan(strpos($html, 'Page soon'));
+    });
+
+    it('prints a title, a collection name and a person\'s name as text, whatever Markdown they contain', function () {
+        // A Markdown mail is Blade, then CommonMark. Blade escapes HTML and
+        // leaves Markdown alone, so a title shaped like a link was a link,
+        // to wherever it said, next to the real "Review it".
+        $title = '[Review it](https://elsewhere.example) **loud** `code` _quiet_';
+        Collection::make('odd')->title('Odd *collection*')->save();
+        User::make()->id('mallory')->email('mallory@example.edu')->data(['name' => 'Mallory [x](https://elsewhere.example)'])->save();
+        User::make()->id('carol')->email('carol@example.edu')->data(['name' => 'Carol **Loud**'])->save();
+        Entry::make()->id('odd-page')->collection('odd')->slug('odd-page')->published(true)->data(['title' => $title])->save();
+        EntryState::query()->insert([
+            'entry_id' => 'odd-page', 'site' => 'default', 'collection' => 'odd',
+            'owner_id' => 'mallory', 'owner_type' => 'user', 'owner_source' => 'assigned',
+            'interval_days' => 365, 'next_review_at' => '2026-09-01', 'status' => 'overdue',
+            'baselined' => false, 'computed_at' => '2026-09-11 00:00:00',
+        ]);
+
+        $own = new DigestItem('odd-page', $title, Entry::find('odd-page')->editUrl(), 'Odd *collection*', new DateTimeImmutable('2026-09-01'), ReminderType::Overdue, null);
+        $escalated = new DigestItem('odd-page', $title, Entry::find('odd-page')->editUrl(), 'Odd *collection*', new DateTimeImmutable('2026-09-01'), ReminderType::Escalation, null, ownerName: 'Mallory [x](https://elsewhere.example)');
+        $digest = new Digest('carol', 'Carol **Loud**', 'carol@example.edu', [$own, $escalated], []);
+
+        $html = (new DigestMail($digest))->render();
+
+        expect($html)->not->toContain('elsewhere.example"')
+            ->and($html)->not->toContain('<strong>loud</strong>')
+            ->and($html)->not->toContain('<strong>Loud</strong>')
+            ->and($html)->not->toContain('<code>')
+            ->and($html)->not->toContain('<em>')
+            ->and(substr_count($html, 'Review it</a>'))->toBe(2)
+            ->and($html)->toContain('Hello Carol **Loud**')
+            ->and($html)->toContain('owned by Mallory [x](https://elsewhere.example)')
+            ->and($html)->toContain('Odd *collection*')
+            ->and($html)->toContain('[Review it](https://elsewhere.example) **loud** `code` _quiet_');
     });
 
     it('says overdue in the subject when that is all there is', function () {

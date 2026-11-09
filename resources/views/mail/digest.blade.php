@@ -1,7 +1,7 @@
 <x-mail::message>
 # {{ $digest->subject() }}
 
-Hello {{ $digest->recipientName }},
+Hello @lifecycleText($digest->recipientName),
 
 @php($own = $digest->count() - count($escalated) - count($notices))
 @if (count($notices))
@@ -10,7 +10,7 @@ Hello {{ $digest->recipientName }},
 Their collections have chosen what happens to a page that stays overdue. Reviewing a page — even to say it is still current — stops this.
 
 @foreach ($notices as $item)
-- **{{ $item->title }}** — {{ $item->collection }} — Lifecycle will {{ $item->action?->label() }} on or after {{ $item->actionableFrom?->format('j M Y') }}@if ($item->editUrl) — [Review it]({{ $item->editUrl }})@endif
+- **@lifecycleText($item->title)** — @lifecycleText($item->collection) — Lifecycle will {{ $item->action?->label() }} on or after {{ $item->actionableFrom?->format('j M Y') }}@if ($item->editUrl) — [Review it]({{ $item->editUrl }})@endif
 
 @endforeach
 @endif
@@ -24,7 +24,7 @@ You are the content owner of {{ $own === 1 ? 'a page' : $own.' pages' }} that {{
 These pages are overdue for review and their owners have not confirmed them. You are hearing about them as {{ $own > 0 ? 'the escalation contact' : 'the escalation contact for them' }}: a word with the owner, or a review of your own, settles it.
 
 @foreach ($escalated as $item)
-- **{{ $item->title }}** — {{ $item->collection }} — owned by {{ $item->ownerName ?? 'nobody' }} — was due {{ $item->dueAt->format('j M Y') }}@if ($item->editUrl) — [Review it]({{ $item->editUrl }})@endif
+- **@lifecycleText($item->title)** — @lifecycleText($item->collection) — owned by @lifecycleText($item->ownerName ?? 'nobody') — was due {{ $item->dueAt->format('j M Y') }}@if ($item->editUrl) — [Review it]({{ $item->editUrl }})@endif
 
 @endforeach
 @endif
@@ -34,7 +34,7 @@ These pages are overdue for review and their owners have not confirmed them. You
 These were due and have not been confirmed.
 
 @foreach ($overdue as $item)
-- **{{ $item->title }}** — {{ $item->collection }} — was due {{ $item->dueAt->format('j M Y') }}@if ($item->editUrl) — [Review it]({{ $item->editUrl }})@endif
+- **@lifecycleText($item->title)** — @lifecycleText($item->collection) — was due {{ $item->dueAt->format('j M Y') }}@if ($item->editUrl) — [Review it]({{ $item->editUrl }})@endif
 
 @endforeach
 @endif
@@ -42,7 +42,7 @@ These were due and have not been confirmed.
 ## Due today ({{ count($dueToday) }})
 
 @foreach ($dueToday as $item)
-- **{{ $item->title }}** — {{ $item->collection }}@if ($item->editUrl) — [Review it]({{ $item->editUrl }})@endif
+- **@lifecycleText($item->title)** — @lifecycleText($item->collection)@if ($item->editUrl) — [Review it]({{ $item->editUrl }})@endif
 
 @endforeach
 @endif
@@ -50,7 +50,7 @@ These were due and have not been confirmed.
 ## Due soon ({{ count($dueSoon) }})
 
 @foreach ($dueSoon as $item)
-- **{{ $item->title }}** — {{ $item->collection }} — due {{ $item->dueAt->format('j M Y') }}@if ($item->editUrl) — [Review it]({{ $item->editUrl }})@endif
+- **@lifecycleText($item->title)** — @lifecycleText($item->collection) — due {{ $item->dueAt->format('j M Y') }}@if ($item->editUrl) — [Review it]({{ $item->editUrl }})@endif
 
 @endforeach
 @endif
@@ -58,5 +58,5 @@ These were due and have not been confirmed.
 You get one of these a day at most, listing everything at once, and nothing when there is nothing. To hear weekly instead, or not by email at all, change *Review reminders* in [your preferences]({{ $preferencesUrl }}) — the dashboard shows these pages whatever you choose.
 
 Thanks,<br>
-{{ $siteName }}
+@lifecycleText($siteName)
 </x-mail::message>
