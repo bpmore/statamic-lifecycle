@@ -19,10 +19,21 @@ beforeEach(function () {
     User::make()->id('sam')->email('sam@example.edu')->data(['name' => 'Sam Okafor'])->save();
     User::make()->id('priya')->email('priya@example.edu')->data(['name' => 'Priya Nair'])->save();
 
-    Collection::make('pages')->routes('/{slug}')->save();
-    foreach (['cardiology', 'oncology', 'radiology', 'pharmacy'] as $slug) {
-        Entry::make()->id("id-{$slug}")->collection('pages')->slug($slug)->published(true)->data(['title' => ucfirst($slug)])->save();
-    }
+    $this->seedPages = static function (array $sites = []): void {
+        $collection = Collection::make('pages')->routes('/{slug}');
+        if ($sites !== []) {
+            $collection->sites($sites);
+        }
+        $collection->save();
+
+        foreach (['cardiology', 'oncology', 'radiology', 'pharmacy'] as $slug) {
+            $entry = Entry::make()->id("id-{$slug}")->collection('pages')->slug($slug)->published(true)->data(['title' => ucfirst($slug)]);
+            if ($sites !== []) {
+                $entry->locale($sites[0]);
+            }
+            $entry->save();
+        }
+    };
 
     $this->csv = function (string $contents): string {
         $path = sys_get_temp_dir().'/owners-'.uniqid().'.csv';
@@ -35,6 +46,8 @@ beforeEach(function () {
 afterEach(fn () => Carbon::setTestNow());
 
 describe('reading the file', function () {
+    beforeEach(fn () => ($this->seedPages)());
+
     it('takes a URL, a URI or an ID for the entry, and an ID or an email for the owner', function () {
         $plan = (new OwnerCsv)->read(($this->csv)(
             "entry,owner\n".
@@ -120,16 +133,18 @@ describe('reading the file', function () {
         expect(fn () => (new OwnerCsv)->read(($this->csv)("/cardiology,sam\n"), defaultOwner: 'ghost'))
             ->toThrow(InvalidArgumentException::class, 'There is no user with the ID or email [ghost].');
     });
+});
 
+describe('in a multisite collection', function () {
     it('resolves a URI in the site asked for, or in whichever site has it, with or without the site\'s prefix', function () {
-        // Multisite is a system switch in Statamic 6; without it a collection
-        // quietly keeps only the default site, and routes nothing elsewhere.
+        // Set the site layout before saving entries: toggling multisite does not
+        // move existing single-site files into their site subdirectories.
         config(['statamic.system.multisite' => true]);
         Site::setSites([
             'default' => ['name' => 'English', 'locale' => 'en_US', 'url' => '/'],
             'fr' => ['name' => 'French', 'locale' => 'fr_FR', 'url' => '/fr/'],
         ]);
-        Collection::make('pages')->routes('/{slug}')->sites(['default', 'fr'])->save();
+        ($this->seedPages)(['default', 'fr']);
         Entry::make()->id('id-cardiologie')->collection('pages')->locale('fr')->origin('id-cardiology')->slug('cardiologie')->published(true)->data(['title' => 'Cardiologie'])->save();
 
         $ids = fn (string $csv, ?string $site = null): array => (new OwnerCsv)->read(($this->csv)($csv), $site)->byOwner['sam']?->map->id()->all() ?? [];
@@ -145,6 +160,8 @@ describe('reading the file', function () {
 });
 
 describe('the command', function () {
+    beforeEach(fn () => ($this->seedPages)());
+
     it('previews per owner, lists the rows it could not use, and writes nothing on a dry run', function () {
         $path = ($this->csv)("entry,owner\n/cardiology,sam\n/oncology,priya\n/radiology,priya\n/nowhere,sam\n");
 
